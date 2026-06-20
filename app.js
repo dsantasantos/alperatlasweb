@@ -748,7 +748,7 @@ function App() {
     className: "sw sw-navy"
   }), "Efeito no Core"), /*#__PURE__*/React.createElement("span", {
     className: "legend-rt"
-  }, "Atlas mantém o evento · Core mantém o vínculo"))), sel && /*#__PURE__*/React.createElement(Drawer, {
+  }, "2026 Alper Seguros · Uso Interno - Confidencial · Atlas mantém o evento / Core mantém o vínculo"))), sel && /*#__PURE__*/React.createElement(Drawer, {
     r: records.find(x => x.id === sel),
     onClose: () => setSel(null),
     patch: patch,
