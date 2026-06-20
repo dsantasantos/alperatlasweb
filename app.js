@@ -737,7 +737,7 @@ function App() {
     n: "list",
     s: 24
   }), /*#__PURE__*/React.createElement("div", null, "Nada para conferir com os filtros atuais.")))))), /*#__PURE__*/React.createElement("div", {
-    className: "legend"
+    className: "table-legend"
   }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     className: "sw sw-err"
   }), "Erro"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
@@ -746,7 +746,9 @@ function App() {
     className: "sw sw-teal"
   }), "Origem da captura"), /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     className: "sw sw-navy"
-  }), "Efeito no Core"), /*#__PURE__*/React.createElement("span", {
+  }), "Efeito no Core")), /*#__PURE__*/React.createElement("div", {
+    className: "legend"
+  }, /*#__PURE__*/React.createElement("span", {
     className: "legend-rt"
   }, "2026 Alper Seguros · Uso Interno - Confidencial · Atlas mantém o evento / Core mantém o vínculo"))), sel && /*#__PURE__*/React.createElement(Drawer, {
     r: records.find(x => x.id === sel),
