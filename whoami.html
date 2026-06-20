@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alper Atlas - Visão Executiva</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+        .card { transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 leading-relaxed">
+
+    <!-- Header / Hero Section -->
+    <header class="gradient-bg text-white py-12 px-6 shadow-lg">
+        <div class="max-w-5xl mx-auto">
+            <h1 class="text-4xl font-bold mb-2">Alper Atlas</h1>
+            <p class="text-xl opacity-90">Plataforma de Tradução de Movimentações para Conferência Humana</p>
+            <div class="mt-6 inline-block bg-white text-blue-800 px-4 py-1 rounded-full text-sm font-semibold uppercase tracking-wider">
+                Visão Executiva v3.0
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-12">
+        
+        <!-- Sumário Executivo -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b-2 border-blue-100 pb-2">O Desafio e a Solução</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <p class="mb-4 text-gray-700">
+                        O serviço essencial de uma corretora é garantir que a realidade do cliente chegue ao destino (operadoras/seguradoras) de forma <strong>correta, no prazo e auditável</strong>. 
+                    </p>
+                    <p class="text-gray-700">
+                        Atualmente, esse processo é artesanal e dependente de planilhas heterogêneas. O <strong>Alper Atlas</strong> transforma esse trabalho em um produto escalável, atuando como um motor genérico de tradução para avaliação humana via cockpit.
+                    </p>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                    <h3 class="font-bold text-blue-800 mb-3">O Modelo N+M</h3>
+                    <p class="text-sm text-blue-900">
+                        Ao introduzir um <strong>Contrato Canônico</strong>, reduzimos a complexidade de integrações diretas (N clientes x M destinos) para uma arquitetura linear (N+M). Cada novo cliente ou destino torna-se apenas uma nova "peça" no ecossistema, sem reescrever o sistema.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- O Ecossistema Alper -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold text-blue-900 mb-8 border-b-2 border-blue-100 pb-2">O Ecossistema de 4 Componentes</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <!-- Alper Tools -->
+                <div class="card bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-blue-600 font-bold text-lg mb-2">Alper Tools</div>
+                    <p class="text-sm text-gray-600 mb-4 italic">"De onde vem o dado e como o traduzo?"</p>
+                    <p class="text-xs text-gray-700">Responsável pela <strong>captura e normalização</strong>. Adquire os dados nas fontes e os carimba com a proveniência original.</p>
+                </div>
+
+                <!-- Alper Atlas -->
+                <div class="card bg-blue-600 p-6 rounded-xl shadow-md border border-blue-700 text-white">
+                    <div class="font-bold text-lg mb-2">Alper Atlas</div>
+                    <p class="text-sm opacity-90 mb-4 italic">"Esse dado é íntegro e o evento é válido?"</p>
+                    <p class="text-xs">O <strong>foco atual</strong>. Motor de decisão e conferência (Cockpit). Onde o analista valida, edita e aprova as movimentações.</p>
+                </div>
+
+                <!-- Alper Core -->
+                <div class="card bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-blue-600 font-bold text-lg mb-2">Alper Core</div>
+                    <p class="text-sm text-gray-600 mb-4 italic">"Qual é a verdade atual do vínculo?"</p>
+                    <p class="text-xs text-gray-700">O domínio do <strong>estado</strong>. Mantém o histórico de quem está ativo e em qual plano. O Atlas consulta o Core para validar eventos.</p>
+                </div>
+
+                <!-- Bate Cadastral -->
+                <div class="card bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-blue-600 font-bold text-lg mb-2">Bate Cadastral</div>
+                    <p class="text-sm text-gray-600 mb-4 italic">"As fontes concordam entre si?"</p>
+                    <p class="text-xs text-gray-700">Ferramenta de <strong>reconciliação</strong> entre diferentes fontes de dados para garantir a integridade total do ecossistema.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Pilares do Atlas -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b-2 border-blue-100 pb-2">Diferenciais Estratégicos</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="p-4 border-b font-bold text-blue-900">Pilar</th>
+                            <th class="p-4 border-b font-bold text-blue-900">Descrição Executiva</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="p-4 border-b font-semibold text-blue-700">Motor Genérico</td>
+                            <td class="p-4 border-b text-gray-700">Não é apenas para movimentação cadastral. O Atlas é projetado para suportar faturamento, reembolso e outros cockpits futuros.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b font-semibold text-blue-700">Proveniência</td>
+                            <td class="p-4 border-b text-gray-700">Rastreabilidade total. O analista vê o dado canônico, mas pode auditar exatamente de qual coluna e linha do arquivo do cliente o dado veio.</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b font-semibold text-blue-700">Evento vs Estado</td>
+                            <td class="p-4 border-b text-gray-700">O Atlas cuida do fluxo (evento transacional), enquanto o Core cuida da permanência (vínculo do beneficiário).</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b font-semibold text-blue-700">Auditoria Nativa</td>
+                            <td class="p-4 border-b text-gray-700">Toda alteração gera um rastro estruturado. Soft-delete (desabilitação) garante que nenhum dado seja perdido.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Resultados Esperados -->
+        <section>
+            <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b-2 border-blue-100 pb-2">Impacto no Negócio</h2>
+            <div class="grid md:grid-cols-3 gap-6 text-center">
+                <div class="p-6 bg-green-50 rounded-xl border border-green-100">
+                    <div class="text-green-700 font-bold text-xl mb-1">Qualidade</div>
+                    <p class="text-sm text-green-900">Redução drástica de recusas por dados inconsistentes.</p>
+                </div>
+                <div class="p-6 bg-blue-50 rounded-xl border border-blue-100">
+                    <div class="text-blue-700 font-bold text-xl mb-1">Escala</div>
+                    <p class="text-sm text-blue-900">Crescimento da carteira sem aumento proporcional da equipe.</p>
+                </div>
+                <div class="p-6 bg-purple-50 rounded-xl border border-purple-100">
+                    <div class="text-purple-700 font-bold text-xl mb-1">Continuidade</div>
+                    <p class="text-sm text-purple-900">Fim da dependência de conhecimento tácito dos analistas.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-gray-400 py-8 px-6 text-center text-sm">
+        <p>&copy; 2026 Alper Seguros. Uso Interno - Confidencial.</p>
+    </footer>
+
+</body>
+</html>
