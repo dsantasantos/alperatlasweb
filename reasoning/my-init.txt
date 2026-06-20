@@ -1,0 +1,43 @@
+Vamos pensar em uma problemática atual da minha corretora. Hoje, recebemos diariamente a movimentação cadastral dos clientes para que possamos enviar esses registros. Basicamente, é nesse momento que o cliente informa para nós, corretora, que um colaborador precisa ser removido do plano, incluído ou ter o seu plano alterado. Nesse contexto, eu tenho que obter esses dados do cliente e tenho várias fontes, mas não quero resolver isso agora. Outro problema será enviar esses dados para a operadora, mas hoje pretendo pensar apenas no output por layout das operadoras (serão N layouts). Eu preciso desenvolver um cockpit que o analista irá utilizar para validar se os dados estão corretos e realizar outras ações. Abaixo detalho esses pontos.
+
+Ações que o analista terá:
+
+1) Analisar visualmente os registros de movimentação;
+2) Poder editar os registros;
+3) Aprovar (inclusive em lote) e rejeitar registros;
+4) Exportar para os formatos das operadoras (Bradesco, CNU, Seguros Unimed e Notredame Intermédica - GNDI)*;
+5) Como os dados podem vir de diferentes fontes, entendo que deve haver pelo menos duas etapas: uma de avaliação prévia dos dados de conformidade da captura das informações e outra, de fato, do registro da movimentação;
+6) Pode haver exclusão, mas deve ser apenas uma desabilitação, e não uma exclusão física.
+
+Requisitos:
+
+1) Entidade "movimentação" agrupada por lote de execução;
+2) A visão do cliente precisa ser clara;
+3) Log / auditoria de todas as alterações;
+4) A experiência do usuário (UX) precisa ser excelente para o analista não se perder;
+5) Esse sistema será um cockpit e irá evoluir para vários clientes e várias operadoras;
+6) O batch (lote) precisa ter um diário de bordo para poder ser atualizado e para que outros analistas possam acompanhar o histórico daquele batch;
+7) O registro em si precisa ter um histórico/diário para preenchimento e observações sobre aquele registro, caso alguém queira realizar uma auditoria;
+8) Esse sistema será o meu grande ERP de Vida da minha corretora. Esse cockpit será apenas uma funcionalidade desse grande sistema;
+9) Esse cockpit precis agnostico a coleta de dados e a saida de arquivos. Haverá componenetes para essas responsabilidades
+10) Os campos iniciais serão:
+
+	CNPJ: Cadastro Nacional da Pessoa Jurídica da empresa/estabelecimento.
+	Município Estab.: Município onde o estabelecimento está localizado.
+	UF Estab.: Unidade da Federação (Estado) do estabelecimento.
+	Matric.: Matrícula do funcionário.
+	Nome: Nome completo do funcionário/colaborador.
+	Cargo: Cargo ou função ocupada pelo colaborador.
+	Admissão: Data de admissão ou contratação do colaborador.
+	Dependente: Campo destinado à identificação ou indicação de dependentes.
+	CPF: Cadastro de Pessoas Físicas (do dependente ou do titular, conforme o contexto da linha).
+	Dt. Nasc.: Data de nascimento.
+	Nome da Mãe: Nome completo da mãe do cadastrado.
+	Dt. Incl.: Data de inclusão do beneficiário no sistema ou plano.
+	Parentesco: Grau de parentesco do dependente (ex: Filho, Cônjuge).
+	Estado Civil: Estado civil do cadastrado (ex: Solteiro, Casado).
+	Data de Casamento: Data em que foi realizado o casamento, caso aplicável.
+	Plano: Nome ou categoria do plano de saúde/benefício (ex: Bradesco Dental).
+	Observação: Campo para notas, comentários ou informações adicionais.
+
+Esse é o meu problema e a ideia que imagino, porém aceito contrapontos e ideias para que possamos chegar ao resultado final.
