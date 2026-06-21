@@ -177,11 +177,11 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .row td{padding:11px 8px}
 .row td:first-child{padding-left:0;display:flex;align-items:center;justify-content:center}
 .row td:last-child{padding-right:8px}
-.ben{display:flex;align-items:center;gap:6px}
-.ben-ic{color:var(--soft)}
-.ben-name{font-weight:700;color:var(--ink)}
+.ben{display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0}
+.ben-ic{color:var(--soft);flex-shrink:0}
+.ben-name{font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ben-name.struck{text-decoration:line-through;color:var(--soft)}
-.ben-sub{font-size:11px;color:var(--soft);margin-left:20px}
+.ben-sub{font-size:11px;color:var(--soft);margin-left:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vida{color:var(--navy);font-weight:500}
 .comp-tag{font-size:10px;color:var(--navy);font-weight:600}
 .badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 7px;border-radius:5px}
@@ -368,7 +368,6 @@ input,select,textarea{font-family:inherit;font-size:14px}
   .bb-app,.bb-rej,.bb-clear{min-height:36px}
   .banner{padding:9px 16px;align-items:flex-start;line-height:1.35}
   .grid-wrap{overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 0 0}
-  .grid{min-width:860px}
   .grid thead th:first-child,.row td:first-child{padding-left:16px}
   .grid thead th{top:0}
   .row td{padding:10px 8px}
@@ -399,6 +398,23 @@ input,select,textarea{font-family:inherit;font-size:14px}
   .toast{left:12px;right:12px;bottom:12px;transform:none;justify-content:center;text-align:center}
 }
 
+/* ===== Narrow desktop 1000–1319px: oculta CPF + Plano, 7 colunas ===== */
+/* (main = viewport − 280px rail; 718px mín cabe a partir de 1000px)     */
+@media (min-width:1000px) and (max-width:1319px){
+  .grid th:nth-child(4),.grid td:nth-child(4),
+  .grid th:nth-child(6),.grid td:nth-child(6){display:none}
+  .grid thead tr,.grid tbody tr{grid-template-columns:minmax(38px,.28fr) minmax(88px,.72fr) minmax(160px,1.45fr) minmax(170px,1.4fr) minmax(120px,1fr) minmax(110px,.85fr) minmax(32px,.25fr)}
+}
+
+/* ===== Tablet + estreito 521–999px: 7 colunas compactas, sem scroll horiz ===== */
+/* Cobre: tablet single-col (521–900px) e desktop estreito (901–999px, main≥621px) */
+@media (min-width:521px) and (max-width:999px){
+  .grid{min-width:0}
+  .grid th:nth-child(4),.grid td:nth-child(4),
+  .grid th:nth-child(6),.grid td:nth-child(6){display:none}
+  .grid thead tr,.grid tbody tr{grid-template-columns:minmax(32px,.25fr) minmax(64px,.6fr) minmax(110px,1.3fr) minmax(120px,1.35fr) minmax(88px,.9fr) minmax(72px,.7fr) minmax(26px,.18fr)}
+}
+
 @media (max-width: 520px){
   body{font-size:13px}
   .splash{align-items:stretch;padding:14px}
@@ -413,7 +429,8 @@ input,select,textarea{font-family:inherit;font-size:14px}
   .fcount{text-align:left}
   .grid{min-width:0;border-collapse:separate;border-spacing:0 8px;padding:0 12px 10px}
   .grid thead{display:none}
-  .grid tbody,.grid tr,.grid td{display:block;width:100%}
+  .grid thead tr,.grid tbody tr{display:block;width:100%}
+  .grid td{display:block;width:100%}
   .row{border:1px solid var(--line);border-left:4px solid transparent;border-radius:8px;background:#fff;overflow:hidden}
   .row.row-err{border-left-color:var(--rose)}
   .row.row-warn{border-left-color:var(--amber-300)}
@@ -432,9 +449,9 @@ input,select,textarea{font-family:inherit;font-size:14px}
   .w-chk{width:auto;display:flex!important;justify-content:flex-end;background:var(--bg)}
   .w-chk input{width:20px;height:20px}
   .chevcell{display:none!important}
-  .ben{min-width:0}
-  .ben-name{overflow-wrap:anywhere}
-  .ben-sub{margin-left:0;margin-top:3px}
+  .ben{min-width:0;overflow:visible}
+  .ben-name{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+  .ben-sub{margin-left:0;margin-top:3px;white-space:normal;overflow:visible;text-overflow:clip}
   .plano{max-width:none;white-space:normal;overflow:visible;text-overflow:clip}
   .drawer{height:100dvh}
   .dr-head,.dr-body,.dr-foot{padding-left:12px;padding-right:12px}
