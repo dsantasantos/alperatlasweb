@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import logoUrl from '../assets/alper-atlas-logo.png';
+import logoUrl from '../assets/logoalper-trans.png';
 import { I } from '../components/shared/Icons';
 import type { Session } from '../types';
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { I } from '../shared/Icons';
 import type { IconName } from '../shared/Icons';
-import logoUrl from '../../assets/alper-atlas-logo.png';
-import CadastralMoviment from '../../pages/movimentacao/CadastralMoviment';
+import logoUrl from '../../assets/logoalper-trans.png';
+import CadastralMoviment from '../../pages/moviment/CadastralMoviment';
 import type { Session } from '../../types';
 
 // ===== Navigation structure =====
@@ -14,7 +14,7 @@ const NAV: NavGroup[] = [
     group: 'Movimentação',
     icon: 'swap',
     items: [
-      { id: 'cadastral-moviment', label: 'Movimentação Cadastral Benefícios', icon: 'package' }
+      { id: 'cadastral-moviment', label: 'Movimentação Cadastral', icon: 'package' }
     ]
   }
 ];
