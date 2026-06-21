@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -8,7 +8,6 @@
       "README.md"
     ],
     "rewrites": [
-      { "source": "/whoami.html", "destination": "/whoami.html" },
       { "source": "**", "destination": "/index.html" }
     ],
     "headers": [

@@ -1,46 +1,68 @@
-# Alper Atlas — Protótipo do Cockpit de Movimentação
+# Alper Atlas
 
-Protótipo navegável do **Alper Atlas** (cockpit de movimentação cadastral), com identidade
-visual da Alper e **dados simulados (mockados)** para validação com usuários.
+Protótipo corporativo do cockpit de movimentação cadastral da Alper, agora estruturado como aplicação React com Vite e Tailwind CSS.
 
-Site estático, **100% offline** (sem CDN): React vem embutido na própria pasta e o app já
-está pré-compilado. Não há backend — todas as ações (triagem, edição, aprovar/rejeitar,
-exportar, proveniência, retorno da operadora/seguradora) rodam no navegador, em memória.
+O projeto continua usando dados mockados em memória para validação de produto e UX. Ainda não há backend, banco de dados ou autenticação real.
 
-## Arquivos
-- `index.html` — página principal.
-- `app.js` — aplicação (React já compilado para JS puro).
-- `react.production.min.js` / `react-dom.production.min.js` — React embutido (sem CDN).
-- `alper-atlas-logo.png` — logo (tela de entrada e favicon).
-- `firebase.json` — configuração de hosting.
+## Stack
 
-> Mantenha todos os arquivos juntos na mesma pasta.
+- React
+- Vite
+- Tailwind CSS
+- Inter via `@fontsource/inter`
+- CSS modularizado em `src/styles/app.css`
+- Firebase Hosting
+- Design tokens em `tailwind.config.js`
 
-## Rodar localmente
-Sirva a pasta por HTTP (abrir com file:// bloqueia o carregamento dos scripts/imagens):
+## Autenticação Simulada
 
-    npx serve .
-    # ou
-    python3 -m http.server 5000
+Use as credenciais abaixo para entrar no cockpit:
 
-Depois acesse o endereço mostrado no terminal. Se a tela ficar branca, abra o console
-do navegador (F12) — mas, sem CDN, isso não deve mais acontecer.
+```txt
+Usuário: admin
+Senha: 123@456
+```
+
+## Estrutura
+
+- `src/main.jsx`: ponto de entrada React.
+- `src/App.jsx`: cockpit e dados mockados.
+- `src/styles/app.css`: estilos do produto, extraídos do antigo HTML inline.
+- `src/assets/alper-atlas-logo.png`: logo usada no app.
+- `tailwind.config.js`: tokens iniciais do design system.
+- `DESIGN_SYSTEM.md`: direção visual e padrões para evolução.
+- `firebase.json`: publica o build `dist`.
+
+## Rodar Localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Depois acesse a URL mostrada pelo Vite.
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
 
 ## Publicar no Firebase Hosting
-Pré-requisitos: Node.js e Firebase CLI (`npm install -g firebase-tools`).
 
-1. `firebase login`
-2. (Primeira vez) `firebase use --add` e selecione seu projeto Firebase (cria o `.firebaserc`).
-3. `firebase deploy --only hosting`
+Pré-requisitos: Node.js e Firebase CLI.
 
-A CLI mostrará a URL pública (ex.: `https://SEU-PROJETO.web.app`).
+```bash
+npm install
+npm run build
+firebase deploy --only hosting
+```
 
-> O `firebase.json` já aponta o hosting para esta pasta (`"public": "."`).
-> Não rode `firebase init hosting` por cima, ou ele pode sobrescrever a configuração —
-> apenas `firebase use --add` e `firebase deploy`.
+O Firebase está configurado para publicar a pasta `dist`.
 
-## Notas
-- O app foi pré-compilado (sem Babel no navegador), o que torna o carregamento rápido e robusto.
-- Para editar o código-fonte (JSX) depois, peça a versão `app.jsx` e recompile com Babel/Vite.
-- Identidade: verde Alper #06805B, azul-marinho do logo #143D6B, teal #2C7A93.
-- Conceito de destino: **Operadora / Seguradora**.
+## Fontes Sem CDN
+
+O projeto não usa mais Google Fonts por CDN. A fonte Inter é empacotada localmente via `@fontsource/inter`, importada no bundle do Vite.
+
+A pilha de fallback continua definida como `Segoe UI`, `Roboto`, `Helvetica Neue`, `Arial` e `sans-serif`.

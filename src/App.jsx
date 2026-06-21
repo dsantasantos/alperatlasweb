@@ -1,8 +1,6 @@
-const {
-  useState,
-  useMemo
-} = React;
-
+import React, { useMemo, useState } from 'react';
+import './styles/app.css';
+import logoUrl from './assets/alper-atlas-logo.png';
 /* ===== ícones (SVG inline, MIT/Feather) ===== */
 const ICONS = {
   compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
@@ -363,7 +361,7 @@ const now = () => "19/06 " + new Date().toTimeString().slice(0, 5);
 
 /* ============================== APP =============================== */
 function App() {
-  const [entered, setEntered] = useState(false);
+  const [session, setSession] = useState(null);
   const [records, setRecords] = useState(seed);
   const [selBatch, setSelBatch] = useState("LT-2026-0619-A");
   const [sel, setSel] = useState(null);
@@ -548,8 +546,8 @@ function App() {
     setModal(null);
     flash("ok", "Arquivo gerado: " + art.arquivo + " · " + el.length + " vida(s).");
   };
-  if (!entered) return /*#__PURE__*/React.createElement(Splash, {
-    onEnter: () => setEntered(true)
+  if (!session) return /*#__PURE__*/React.createElement(Login, {
+    onAuthenticated: user => setSession(user)
   });
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
@@ -718,7 +716,25 @@ function App() {
     className: "grid-wrap"
   }, /*#__PURE__*/React.createElement("table", {
     className: "grid"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+  }, /*#__PURE__*/React.createElement("colgroup", null, /*#__PURE__*/React.createElement("col", {
+    className: "col-check"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-type"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-person"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-cpf"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-destination"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-plan"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-checks"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-status"
+  }), /*#__PURE__*/React.createElement("col", {
+    className: "col-open"
+  })), /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
     className: "w-chk"
   }), /*#__PURE__*/React.createElement("th", null, "Tipo"), /*#__PURE__*/React.createElement("th", null, "Beneficiário"), /*#__PURE__*/React.createElement("th", null, "CPF"), /*#__PURE__*/React.createElement("th", null, "Operadora / Seguradora"), /*#__PURE__*/React.createElement("th", null, "Plano"), /*#__PURE__*/React.createElement("th", null, "Conferência"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, view.rs.map(r => /*#__PURE__*/React.createElement(Row, {
     key: r.id,
@@ -786,29 +802,69 @@ function App() {
   }));
 }
 
-/* ===== Splash ===== */
-function Splash({
-  onEnter
+/* ===== Login ===== */
+function Login({
+  onAuthenticated
 }) {
+  const [user, setUser] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const submit = event => {
+    event.preventDefault();
+    if (user.trim() === "admin" && password === "123@456") {
+      setError("");
+      onAuthenticated({
+        name: "Administrador",
+        role: "admin"
+      });
+      return;
+    }
+    setError("Usu?rio ou senha inv?lidos.");
+  };
   return /*#__PURE__*/React.createElement("div", {
     className: "splash"
   }, /*#__PURE__*/React.createElement("div", {
     className: "splash-card"
   }, /*#__PURE__*/React.createElement("img", {
-    src: "alper-atlas-logo.png",
+    src: logoUrl,
     alt: "Alper Atlas",
     className: "splash-logo"
   }), /*#__PURE__*/React.createElement("div", {
     className: "splash-sub"
   }, "Cockpit de Movimentação Cadastral"), /*#__PURE__*/React.createElement("p", {
     className: "splash-desc"
-  }, "Plataforma de tradução de movimentações de qualquer fonte para conferência humana — operadoras e seguradoras."), /*#__PURE__*/React.createElement("button", {
-    className: "btn btn-primary splash-btn",
-    onClick: onEnter
+  }, "Plataforma de tradução de movimentações de qualquer fonte para conferência humana — operadoras e seguradoras."), /*#__PURE__*/React.createElement("form", {
+    className: "login-form",
+    onSubmit: submit
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "login-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Usu?rio"), /*#__PURE__*/React.createElement("input", {
+    value: user,
+    onChange: event => setUser(event.target.value),
+    autoComplete: "username",
+    placeholder: "admin"
+  })), /*#__PURE__*/React.createElement("label", {
+    className: "login-field"
+  }, /*#__PURE__*/React.createElement("span", null, "Senha"), /*#__PURE__*/React.createElement("input", {
+    value: password,
+    onChange: event => setPassword(event.target.value),
+    autoComplete: "current-password",
+    type: "password",
+    placeholder: "123@456"
+  })), error && /*#__PURE__*/React.createElement("div", {
+    className: "login-error"
+  }, /*#__PURE__*/React.createElement(I, {
+    n: "alert",
+    s: 14
+  }), " ", error), /*#__PURE__*/React.createElement("button", {
+    className: "btn btn-primary login-submit",
+    type: "submit"
   }, "Entrar no cockpit ", /*#__PURE__*/React.createElement(I, {
     n: "arrowR",
     s: 16
   })), /*#__PURE__*/React.createElement("div", {
+    className: "login-hint"
+  }, "Acesso simulado para prot?tipo corporativo.")), /*#__PURE__*/React.createElement("div", {
     className: "splash-foot"
   }, "Protótipo · dados simulados para validação")));
 }
@@ -1448,4 +1504,4 @@ function Toast({
     s: 16
   }), " ", m);
 }
-ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+export default App;
