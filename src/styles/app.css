@@ -205,7 +205,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .st-dis{background:#f1f5f9;color:var(--soft)}
 .chevcell{width:auto}.chev{color:#cbd5e1}
 .row:hover .chev{color:var(--mute)}
-.empty{text-align:center;padding:60px;color:var(--soft)}
+.empty{text-align:center;padding:60px;color:var(--soft);grid-column:1 / -1}
 .empty svg{color:#cbd5e1;margin-bottom:8px}
 
 .table-legend{background:#fff;border-top:1px solid var(--line);padding:10px 32px;font-size:11px;color:var(--mute);display:flex;align-items:center;gap:16px}
