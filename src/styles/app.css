@@ -27,7 +27,6 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .splash-logo{width:240px;max-width:80%;height:auto;margin:0 auto 10px}
 .splash-sub{font-size:17px;font-weight:700;color:var(--navy);margin-top:4px}
 .splash-desc{font-size:13px;color:var(--mute);margin:10px 0 22px;line-height:1.6}
-.splash-btn{margin:0 auto}
 .splash-foot{margin-top:18px;font-size:11px;color:var(--soft)}
 .login-form{margin-top:22px;text-align:left;display:flex;flex-direction:column;gap:12px}
 .login-field{display:flex;flex-direction:column;gap:5px}
@@ -38,9 +37,57 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .login-submit{width:100%;justify-content:center;margin-top:2px}
 .login-hint{font-size:11px;color:var(--soft);text-align:center;margin-top:4px}
 
+/* ===== shell (app shell + hamburger nav) ===== */
+.shell{display:flex;flex-direction:column;height:100%}
+.shell-content{flex:1;overflow:hidden;min-height:0}
+.shell-content .app{height:100%}
+
+/* topbar */
+.topbar{height:52px;background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.1)}
+.topbar-ham{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);flex-shrink:0;transition:background .15s,color .15s}
+.topbar-ham:hover{background:rgba(255,255,255,.12);color:#fff}
+.topbar-brand{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:800;color:#fff;text-transform:capitalize;letter-spacing:0}
+.topbar-brand-mark{width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.22);flex-shrink:0}
+.topbar-sep{color:rgba(255,255,255,.3);font-weight:300;font-size:16px}
+.topbar-group{font-size:12px;color:#93c5fd;font-weight:600}
+.topbar-page{font-size:12px;color:#dbeafe;font-weight:500}
+.topbar-user{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar-avatar{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;border:1px solid rgba(255,255,255,.28);flex-shrink:0}
+.topbar-username{font-size:12px;color:rgba(255,255,255,.7)}
+
+/* nav overlay + sidebar */
+.nav-overlay{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:99}
+.nav-sidebar{position:fixed;top:0;left:0;bottom:0;width:288px;background:var(--ink);transform:translateX(-100%);transition:transform .22s cubic-bezier(.4,0,.2,1);z-index:100;display:flex;flex-direction:column;box-shadow:4px 0 32px rgba(0,0,0,.35)}
+.nav-sidebar.open{transform:translateX(0)}
+.nav-sidebar-head{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
+.nav-sidebar-brand{display:flex;align-items:center}
+.nav-logo{width:130px;height:auto;display:block}
+.nav-sidebar-close{color:rgba(255,255,255,.35);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
+.nav-sidebar-close:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
+.nav-body{flex:1;overflow-y:auto;padding:10px 0}
+.nav-group{margin-bottom:2px}
+.nav-group-label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.28);padding:12px 20px 5px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 20px;font-size:13px;color:rgba(255,255,255,.55);text-align:left;border:none;border-right:3px solid transparent;background:none;transition:background .15s,color .15s,border-color .15s}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.88)}
+.nav-item.active{background:rgba(59,130,246,.2);color:#93c5fd;border-right-color:#3b82f6}
+.nav-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;gap:10px}
+.nav-foot-user{display:flex;align-items:center;gap:10px}
+.nav-foot-avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-size:11px;font-weight:800;border:1px solid rgba(255,255,255,.18);flex-shrink:0}
+.nav-foot-info{min-width:0}
+.nav-foot-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-foot-role{font-size:11px;color:rgba(255,255,255,.3);text-transform:capitalize}
+.nav-logout{display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.35);padding:6px 4px;background:none;border:none;transition:color .15s}
+.nav-logout:hover{color:rgba(255,255,255,.7)}
+
 /* ===== layout ===== */
 .app{display:grid;grid-template-columns:280px minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;min-height:100%;height:100%}
 .rail{display:contents}
+/* app--slim: sem rail-head (usado dentro do AppShell que já tem topbar) */
+.app--slim{grid-template-rows:auto minmax(0,1fr) auto}
+.app--slim .rail-lbl{grid-row:1}
+.app--slim .rail-list{grid-row:2}
+.app--slim .rail-foot{grid-row:3}
+.app--slim .main{grid-row:1 / 4}
 .rail-head{grid-column:1 / -1;grid-row:1;padding:25px 32px 24px;background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%);color:#fff;box-shadow:0 10px 24px rgba(30,58,138,.16)}
 .brand{display:flex;align-items:center;gap:10px}
 .brand-mark{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.22)}
@@ -283,6 +330,9 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .toast-ok{background:var(--green)}.toast-warn{background:var(--amber)}.toast-info{background:var(--ink)}
 
 @media (max-width: 900px){
+  .topbar-group,.topbar-page{display:none}
+  .topbar-sep{display:none}
+  .topbar-username{display:none}
   html,body,#root{height:auto;min-height:100%}
   body{overflow-x:hidden}
   .app{min-height:100vh;height:auto;display:block}
