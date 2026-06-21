@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { I } from '../shared/Icons';
 import type { IconName } from '../shared/Icons';
 import logoUrl from '../../assets/logoalper-trans.png';
 import CadastralMoviment from '../../pages/moviment/CadastralMoviment';
+import Documentation from '../../pages/admin/Documentation';
 import type { Session } from '../../types';
 
 // ===== Navigation structure =====
@@ -15,6 +16,13 @@ const NAV: NavGroup[] = [
     icon: 'swap',
     items: [
       { id: 'cadastral-moviment', label: 'Movimentação Cadastral', icon: 'package' }
+    ]
+  },
+  {
+    group: 'Admin',
+    icon: 'shield',
+    items: [
+      { id: 'documentation', label: 'Documentação', icon: 'book' }
     ]
   }
 ];
@@ -122,6 +130,7 @@ export default function AppShell({ session, onLogout }: AppShellProps) {
       {/* ===== Page content ===== */}
       <div className="shell-content">
         {activePage === 'cadastral-moviment' && <CadastralMoviment />}
+        {activePage === 'documentation' && <Documentation />}
       </div>
     </div>
   );
