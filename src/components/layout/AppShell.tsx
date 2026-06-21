@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { I } from '../shared/Icons';
+import type { IconName } from '../shared/Icons';
 import logoUrl from '../../assets/alper-atlas-logo.png';
 import CadastralMoviment from '../../pages/movimentacao/CadastralMoviment';
+import type { Session } from '../../types';
 
-const NAV = [
+// ===== Navigation structure =====
+interface NavItem  { id: string; label: string; icon: IconName }
+interface NavGroup { group: string; icon: IconName; items: NavItem[] }
+
+const NAV: NavGroup[] = [
   {
     group: 'Movimentação',
     icon: 'swap',
@@ -13,21 +19,27 @@ const NAV = [
   }
 ];
 
-function getPageLabel(pageId) {
-  for (const group of NAV) {
-    const item = group.items.find(i => i.id === pageId);
-    if (item) return { group: group.group, label: item.label };
+function getPageMeta(pageId: string): { group: string; label: string } {
+  for (const g of NAV) {
+    const item = g.items.find(i => i.id === pageId);
+    if (item) return { group: g.group, label: item.label };
   }
   return { group: '', label: '' };
 }
 
-export default function AppShell({ session, onLogout }) {
+// ===== Component =====
+interface AppShellProps {
+  session: Session;
+  onLogout: () => void;
+}
+
+export default function AppShell({ session, onLogout }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage]   = useState('cadastral-moviment');
 
-  const { group, label } = getPageLabel(activePage);
+  const { group, label } = getPageMeta(activePage);
 
-  const navigate = pageId => {
+  const navigate = (pageId: string) => {
     setActivePage(pageId);
     setSidebarOpen(false);
   };
@@ -55,9 +67,7 @@ export default function AppShell({ session, onLogout }) {
         )}
 
         <div className="topbar-user">
-          <div className="topbar-avatar">
-            {session.name.slice(0, 2).toUpperCase()}
-          </div>
+          <div className="topbar-avatar">{session.name.slice(0, 2).toUpperCase()}</div>
           <span className="topbar-username">{session.name}</span>
         </div>
       </header>

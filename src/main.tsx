@@ -10,10 +10,13 @@ import '@fontsource/inter/latin-ext-500.css';
 import '@fontsource/inter/latin-ext-600.css';
 import '@fontsource/inter/latin-ext-700.css';
 import '@fontsource/inter/latin-ext-800.css';
-import App from './App.jsx';
+import App from './App';
 
-createRoot(document.getElementById('root')).render(
+const root = document.getElementById('root');
+if (!root) throw new Error('Root element not found');
+
+createRoot(root).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 );

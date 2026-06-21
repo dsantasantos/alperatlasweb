@@ -1,8 +1,11 @@
 import React from 'react';
 import { I } from './Icons';
 import { LABEL, MONO, hasErro } from '../../data/seed';
+import type { Movimentacao, TimelineEvent, Validacao, FieldValue } from '../../types';
 
-export function Sel({ value, onChange, options }) {
+// ===== Sel =====
+interface SelProps { value: string; onChange: (v: string) => void; options: string[] }
+export function Sel({ value, onChange, options }: SelProps) {
   return (
     <select className="sel" value={value} onChange={e => onChange(e.target.value)}>
       {options.map(o => <option key={o}>{o}</option>)}
@@ -10,7 +13,9 @@ export function Sel({ value, onChange, options }) {
   );
 }
 
-export function Tog({ on, onClick, label }) {
+// ===== Tog =====
+interface TogProps { on: boolean; onClick: () => void; label: string }
+export function Tog({ on, onClick, label }: TogProps) {
   return (
     <button onClick={onClick} className={"tog" + (on ? " on" : "")}>
       <span className="tog-mark">{on && <I n="check" s={10} />}</span>
@@ -19,7 +24,9 @@ export function Tog({ on, onClick, label }) {
   );
 }
 
-export function Progress({ recs }) {
+// ===== Progress =====
+interface ProgressProps { recs: Movimentacao[] }
+export function Progress({ recs }: ProgressProps) {
   const total = recs.length;
   const done  = recs.filter(r => ["aprovado","rejeitado","exportado","confirmado","recusado","desabilitado"].includes(r.status)).length;
   const conf  = recs.filter(r => r.status === "confirmado").length;
@@ -30,12 +37,14 @@ export function Progress({ recs }) {
       <div className="prog-bar"><div className="prog-fill" style={{ width: pct + "%" }} /></div>
       <div className="prog-tx">{done} de {total} conferidas · {pct}%</div>
       {conf > 0 && <div className="prog-core"><I n="database" s={13} />{conf} no Core</div>}
-      {er   > 0 && <div className="prog-err"><I n="alert" s={13} />{er} com erro</div>}
+      {er   > 0 && <div className="prog-err"><I n="alert"    s={13} />{er} com erro</div>}
     </div>
   );
 }
 
-export function Toast({ k, m }) {
+// ===== Toast =====
+interface ToastProps { k: 'ok' | 'warn' | 'info'; m: string }
+export function Toast({ k, m }: ToastProps) {
   const ic = k === "ok" ? "checkCircle" : k === "warn" ? "alert" : "info";
   return (
     <div className={"toast toast-" + k}>
@@ -44,13 +53,15 @@ export function Toast({ k, m }) {
   );
 }
 
-export function Modal({ title, icon, children, onClose }) {
+// ===== Modal =====
+interface ModalProps { title: string; icon: string; children: React.ReactNode; onClose: () => void }
+export function Modal({ title, icon, children, onClose }: ModalProps) {
   return (
     <div className="modal-overlay">
       <div className="modal-bg" onClick={onClose} />
       <div className="modal">
         <div className="modal-head">
-          <div className="modal-title"><I n={icon} s={18} /> {title}</div>
+          <div className="modal-title"><I n={icon as never} s={18} /> {title}</div>
           <button className="iconbtn" onClick={onClose}><I n="x" s={20} /></button>
         </div>
         <div className="modal-body">{children}</div>
@@ -59,7 +70,9 @@ export function Modal({ title, icon, children, onClose }) {
   );
 }
 
-export function TLItem({ ev }) {
+// ===== TLItem =====
+interface TLItemProps { ev: TimelineEvent }
+export function TLItem({ ev }: TLItemProps) {
   const core  = ev.tipo === "core";
   const human = ev.origem === "humano";
   const kind  = core ? "Core" : human ? "Diário" : "Auditoria";
@@ -87,14 +100,16 @@ export function TLItem({ ev }) {
   );
 }
 
-export function Field({ k, cell, value, onChange, showOrig }) {
+// ===== Field =====
+interface FieldProps { k: string; cell: FieldValue; value: string; onChange: (v: string) => void; showOrig: boolean }
+export function Field({ k, cell, value, onChange, showOrig }: FieldProps) {
   const full  = k === "nome" || k === "plano";
   const ambig = cell.origem.transform === "Ambígua";
   const o     = cell.origem;
   return (
     <label className={"fld" + (full ? " full" : "")}>
       <span className="fl">
-        {LABEL[k] || k}
+        {LABEL[k] ?? k}
         {ambig && <span className="ambig-tag">origem ambígua</span>}
       </span>
       <input
@@ -116,7 +131,9 @@ export function Field({ k, cell, value, onChange, showOrig }) {
   );
 }
 
-export function Dimension({ title, hint, items }) {
+// ===== Dimension =====
+interface DimensionProps { title: string; hint: string; items: Validacao[] }
+export function Dimension({ title, hint, items }: DimensionProps) {
   return (
     <div className="dim">
       <div className="dim-head">
@@ -135,10 +152,7 @@ export function Dimension({ title, hint, items }) {
                   <span>{v.msg}</span>
                 </div>
                 {v.core && (
-                  <div className="vcore">
-                    <I n="database" s={14} />
-                    <span>{v.core}</span>
-                  </div>
+                  <div className="vcore"><I n="database" s={14} /><span>{v.core}</span></div>
                 )}
                 {v.regra && (
                   <div className="cascade">

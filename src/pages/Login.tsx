@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import logoUrl from '../assets/alper-atlas-logo.png';
 import { I } from '../components/shared/Icons';
+import type { Session } from '../types';
 
-export default function Login({ onAuthenticated }) {
-  const [user, setUser]       = useState("admin");
+interface LoginProps {
+  onAuthenticated: (session: Session) => void;
+}
+
+export default function Login({ onAuthenticated }: LoginProps) {
+  const [user, setUser]         = useState("admin");
   const [password, setPassword] = useState("");
-  const [error, setError]     = useState("");
+  const [error, setError]       = useState("");
 
-  const submit = e => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (user.trim() === "admin" && password === "123@456") {
       setError("");
@@ -21,10 +26,10 @@ export default function Login({ onAuthenticated }) {
     <div className="splash">
       <div className="splash-card">
         <img src={logoUrl} alt="Alper Atlas" className="splash-logo" />
-        <div className="splash-sub">Cockpit de Movimentação Cadastral</div>
+        <div className="splash-sub">Alper Atlas</div>
         <p className="splash-desc">
-          Plataforma de tradução de movimentações de qualquer fonte para conferência humana —
-          operadoras e seguradoras.
+          Plataforma de tradução de qualquer fonte para conferência humana e envio para
+          operadoras / seguradoras.
         </p>
         <form className="login-form" onSubmit={submit}>
           <label className="login-field">
@@ -41,7 +46,7 @@ export default function Login({ onAuthenticated }) {
             </div>
           )}
           <button className="btn btn-primary login-submit" type="submit">
-            Entrar no cockpit <I n="arrowR" s={16} />
+            Entrar <I n="arrowR" s={16} />
           </button>
           <div className="login-hint">Acesso simulado para protótipo corporativo.</div>
         </form>

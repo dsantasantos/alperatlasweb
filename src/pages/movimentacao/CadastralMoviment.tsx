@@ -5,14 +5,23 @@ import {
   CATALOG, batches, seed, tipoCls, stMeta,
   hasErro, hasAviso, now, ANALISTA, CP
 } from '../../data/seed';
+import type { Movimentacao, TimelineEvent, Artifact } from '../../types';
 
 // ===== Layout helper =====
-function layoutV(cp) {
-  return { "Bradesco Saúde": "v3.2", "CNU": "v1.7", "Seguros Unimed": "v2.0", "GNDI": "v4.1", "MetLife": "v1.0" }[cp] || "v1.0";
-}
+const LAYOUT_V: Record<string, string> = {
+  "Bradesco Saúde": "v3.2", "CNU": "v1.7",
+  "Seguros Unimed": "v2.0", "GNDI": "v4.1", "MetLife": "v1.0"
+};
+function layoutV(cp: string): string { return LAYOUT_V[cp] ?? "v1.0"; }
 
 // ===== Row =====
-function Row({ r, checked, onCheck, onOpen }) {
+interface RowProps {
+  r: Movimentacao;
+  checked: boolean;
+  onCheck: () => void;
+  onOpen: () => void;
+}
+function Row({ r, checked, onCheck, onOpen }: RowProps) {
   const cls = hasErro(r) ? "row-err" : hasAviso(r) ? "row-warn" : "";
   const er  = r.validacoes.filter(v => v.sev === "erro").length;
   const av  = r.validacoes.filter(v => v.sev === "aviso").length;
@@ -53,28 +62,41 @@ function Row({ r, checked, onCheck, onOpen }) {
 }
 
 // ===== Drawer =====
-function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, onCompensate, flash }) {
+interface DrawerProps {
+  r: Movimentacao;
+  onClose: () => void;
+  patch: (id: string, p: Partial<Movimentacao>, ev?: TimelineEvent[]) => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onDisable: () => void;
+  onReturn: (ok: boolean) => void;
+  onCompensate: () => void;
+  flash: (k: 'ok' | 'warn' | 'info', m: string) => void;
+}
+function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, onCompensate, flash }: DrawerProps) {
   const [showOrig, setShowOrig] = useState(false);
-  const [nota, setNota] = useState("");
-  const init = {};
-  Object.keys(r.campos).forEach(k => init[k] = r.campos[k].value);
-  const [draft, setDraft] = useState(init);
+  const [nota, setNota]         = useState("");
+  const initDraft = Object.fromEntries(Object.keys(r.campos).map(k => [k, r.campos[k].value]));
+  const [draft, setDraft]       = useState<Record<string, string>>(initDraft);
   const blocked = hasErro(r);
 
   const save = () => {
-    const ev = [];
+    const ev: TimelineEvent[] = [];
     Object.keys(draft).forEach(k => {
       if (draft[k] !== r.campos[k].value) ev.push({
-        id: r.id + Date.now() + k, origem: "sistema", tipo: "campo", autor: ANALISTA, quando: now(),
-        texto: `Campo "${r.campos[k] ? k : k}" alterado.`, de: r.campos[k].value || "—", para: draft[k] || "—"
+        id: r.id + Date.now() + k, origem: "sistema", tipo: "campo",
+        autor: ANALISTA, quando: now(),
+        texto: `Campo "${LABEL_K(k)}" alterado.`,
+        de: r.campos[k].value || "—", para: draft[k] || "—"
       });
     });
     if (!ev.length) { flash("warn", "Nenhuma alteração."); return; }
-    const novos = {};
-    Object.keys(r.campos).forEach(k => novos[k] = {
+    const novos = Object.fromEntries(Object.keys(r.campos).map(k => [k, {
       ...r.campos[k], value: draft[k],
-      origem: draft[k] !== r.campos[k].value ? { coluna: "edição manual", transform: "Manual", linha: null } : r.campos[k].origem
-    });
+      origem: draft[k] !== r.campos[k].value
+        ? { coluna: "edição manual", transform: "Manual", linha: null, candidatos: null }
+        : r.campos[k].origem
+    }]));
     patch(r.id, { campos: novos }, ev);
     flash("ok", ev.length + " alteração(ões) salva(s) na auditoria.");
   };
@@ -108,8 +130,7 @@ function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, o
               <div className="delta-lbl">O que mudou</div>
               <div className="delta-row">
                 <b>{r.delta.campo}:</b> <span className="old">{r.delta.de}</span>
-                <I n="arrowR" s={14} cls="delta-arr" />
-                <b>{r.delta.para}</b>
+                <I n="arrowR" s={14} cls="delta-arr" /><b>{r.delta.para}</b>
               </div>
             </div>
           )}
@@ -128,8 +149,8 @@ function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, o
             )}
           </div>
 
-          <Dimension title="Conformidade da captura" hint="A tradução de entrada foi fiel?" items={r.validacoes.filter(v => v.dim === "captura")} />
-          <Dimension title="Validade da movimentação" hint="O evento faz sentido?" items={r.validacoes.filter(v => v.dim === "movimentacao")} />
+          <Dimension title="Conformidade da captura"  hint="A tradução de entrada foi fiel?" items={r.validacoes.filter(v => v.dim === "captura")} />
+          <Dimension title="Validade da movimentação" hint="O evento faz sentido?"           items={r.validacoes.filter(v => v.dim === "movimentacao")} />
 
           <div className="fields">
             <div className="fields-head">
@@ -158,8 +179,7 @@ function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, o
             <div className="sec-lbl"><I n="clock" s={13} /> Histórico · auditoria e diário</div>
             <div className="nota-row">
               <input value={nota} onChange={e => setNota(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addNota()}
-                placeholder="Adicionar observação…" />
+                onKeyDown={e => e.key === "Enter" && addNota()} placeholder="Adicionar observação…" />
               <button className="nota-btn" onClick={addNota}><I n="msg" s={16} /></button>
             </div>
             <ol className="tl">{r.timeline.slice().reverse().map(ev => <TLItem key={ev.id} ev={ev} />)}</ol>
@@ -169,7 +189,7 @@ function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, o
         <div className="dr-foot">
           {r.status === "pendente" && (
             <div className="foot-row">
-              <button disabled={blocked} className={"btn btn-app" + (blocked ? " disabled" : "")} onClick={blocked ? null : onApprove}>
+              <button disabled={blocked} className={"btn btn-app" + (blocked ? " disabled" : "")} onClick={blocked ? undefined : onApprove}>
                 <I n="checkCircle" s={16} /> Aprovar
               </button>
               <button className="btn btn-rejo" onClick={onReject}><I n="xCircle" s={16} /> Rejeitar</button>
@@ -201,8 +221,20 @@ function Drawer({ r, onClose, patch, onApprove, onReject, onDisable, onReturn, o
   );
 }
 
+// helper usado no Drawer
+function LABEL_K(k: string): string {
+  const map: Record<string, string> = {
+    tipo: "Tipo", competencia: "Competência", motivo: "Motivo", destino: "Operadora / Seguradora",
+    cnpj: "CNPJ", matricula: "Matrícula", nome: "Nome", cpf: "CPF",
+    dtNasc: "Data de Nascimento", nomeMae: "Nome da Mãe", admissao: "Data de Admissão",
+    parentesco: "Parentesco", titularCpf: "CPF do Titular", plano: "Plano"
+  };
+  return map[k] ?? k;
+}
+
 // ===== Export Modal =====
-function ExportModal({ brecs, artifacts, onExport, onClose }) {
+interface ExportModalProps { brecs: Movimentacao[]; artifacts: Artifact[]; onExport: (cp: string) => void; onClose: () => void }
+function ExportModal({ brecs, artifacts, onExport, onClose }: ExportModalProps) {
   const cps = Object.values(CP).map(c => c.nome);
   return (
     <Modal onClose={onClose} title="Exportar por operadora / seguradora" icon="download">
@@ -217,7 +249,7 @@ function ExportModal({ brecs, artifacts, onExport, onClose }) {
                 <div className="exp-name">{cp} <span className="mono exp-layout">layout {layoutV(cp)}</span></div>
                 <div className="exp-meta">{ap} aprovada(s) · {pd} pendente(s)</div>
               </div>
-              <button disabled={!ap} className={"btn " + (ap ? "btn-primary" : "btn-disabled")} onClick={ap ? () => onExport(cp) : null}>
+              <button disabled={!ap} className={"btn " + (ap ? "btn-primary" : "btn-disabled")} onClick={ap ? () => onExport(cp) : undefined}>
                 <I n="download" s={16} /> Gerar
               </button>
             </div>
@@ -241,7 +273,8 @@ function ExportModal({ brecs, artifacts, onExport, onClose }) {
 }
 
 // ===== Reject Modal =====
-function RejectModal({ count, onConfirm, onClose }) {
+interface RejectModalProps { count: number; onConfirm: (m: string) => void; onClose: () => void }
+function RejectModal({ count, onConfirm, onClose }: RejectModalProps) {
   const [m, setM] = useState("");
   return (
     <Modal onClose={onClose} title={`Rejeitar ${count} movimentação(ões)`} icon="xCircle">
@@ -250,7 +283,7 @@ function RejectModal({ count, onConfirm, onClose }) {
       <div className="modal-foot">
         <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
         <button disabled={!m.trim()} className={"btn " + (m.trim() ? "btn-rejo-solid" : "btn-disabled")}
-          onClick={m.trim() ? () => onConfirm(m.trim()) : null}>
+          onClick={m.trim() ? () => onConfirm(m.trim()) : undefined}>
           Confirmar rejeição
         </button>
       </div>
@@ -259,14 +292,15 @@ function RejectModal({ count, onConfirm, onClose }) {
 }
 
 // ===== Diary Modal =====
-function DiaryModal({ batch, onClose }) {
+interface DiaryModalProps { batch: typeof batches[0]; onClose: () => void }
+function DiaryModal({ batch, onClose }: DiaryModalProps) {
   return (
     <Modal onClose={onClose} title={`Diário do lote ${batch.id}`} icon="book">
       <p className="modal-p">Histórico compartilhado do lote — qualquer analista acompanha o que aconteceu e por quê.</p>
       <ol className="tl">
         {batch.diario.length === 0
           ? <li className="muted">Sem anotações ainda.</li>
-          : batch.diario.slice().reverse().map(ev => <TLItem key={ev.id} ev={ev} />)
+          : batch.diario.slice().reverse().map(ev => <TLItem key={ev.id} ev={{ ...ev, tipo: "estado" }} />)
         }
       </ol>
     </Modal>
@@ -274,21 +308,26 @@ function DiaryModal({ batch, onClose }) {
 }
 
 // ===== Page =====
-export default function CadastralMoviment() {
-  const [records, setRecords]   = useState(seed);
-  const [selBatch, setSelBatch] = useState("LT-2026-0619-A");
-  const [sel, setSel]           = useState(null);
-  const [checked, setChecked]   = useState(() => new Set());
-  const [filters, setFilters]   = useState({ q: "", cp: "Todas", tipo: "Todos", pend: true, ocultar: true });
-  const [toast, setToast]       = useState(null);
-  const [modal, setModal]       = useState(null);
-  const [rejectCtx, setRejectCtx] = useState(null);
-  const [artifacts, setArtifacts] = useState([]);
+type ModalType = 'export' | 'reject' | 'diary' | null;
 
-  const batch = batches.find(b => b.id === selBatch);
+export default function CadastralMoviment() {
+  const [records, setRecords]     = useState<Movimentacao[]>(seed);
+  const [selBatch, setSelBatch]   = useState("LT-2026-0619-A");
+  const [sel, setSel]             = useState<string | null>(null);
+  const [checked, setChecked]     = useState<Set<string>>(() => new Set());
+  const [filters, setFilters]     = useState({ q: "", cp: "Todas", tipo: "Todos", pend: true, ocultar: true });
+  const [toast, setToast]         = useState<{ k: 'ok' | 'warn' | 'info'; m: string } | null>(null);
+  const [modal, setModal]         = useState<ModalType>(null);
+  const [rejectCtx, setRejectCtx] = useState<{ ids: string[] } | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+
+  const batch = batches.find(b => b.id === selBatch)!;
   const brecs = records.filter(r => r.batchId === selBatch);
 
-  const flash = (k, m) => { setToast({ k, m }); setTimeout(() => setToast(null), 3400); };
+  const flash = (k: 'ok' | 'warn' | 'info', m: string) => {
+    setToast({ k, m });
+    setTimeout(() => setToast(null), 3400);
+  };
 
   const view = useMemo(() => {
     let rs = brecs;
@@ -298,21 +337,21 @@ export default function CadastralMoviment() {
     if (filters.pend) rs = rs.filter(r => r.status === "pendente");
     const oc = filters.ocultar ? rs.filter(r => r.status === "pendente" && !hasErro(r) && !hasAviso(r)).length : 0;
     if (filters.ocultar) rs = rs.filter(r => !(r.status === "pendente" && !hasErro(r) && !hasAviso(r)));
-    const rank = r => hasErro(r) ? 0 : hasAviso(r) ? 1 : 2;
+    const rank = (r: Movimentacao) => hasErro(r) ? 0 : hasAviso(r) ? 1 : 2;
     return { rs: rs.slice().sort((a, b) => rank(a) - rank(b)), oc };
   }, [brecs, filters]);
 
-  const patch = (id, p, ev = []) => {
+  const patch = (id: string, p: Partial<Movimentacao>, ev: TimelineEvent[] = []) => {
     setRecords(prev => prev.map(r => r.id === id ? { ...r, ...p, timeline: r.timeline.concat(ev) } : r));
   };
 
-  const approve = ids => {
+  const approve = (ids: string[]) => {
     let ok = 0, skip = 0;
     setRecords(prev => prev.map(r => {
       if (!ids.includes(r.id) || r.status !== "pendente") return r;
       if (hasErro(r)) { skip++; return r; }
       ok++;
-      return { ...r, status: "aprovado", timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "humano", tipo: "estado", autor: ANALISTA, quando: now(), texto: "Movimentação aprovada." }]) };
+      return { ...r, status: "aprovado" as const, timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "humano", tipo: "estado", autor: ANALISTA, quando: now(), texto: "Movimentação aprovada." }]) };
     }));
     setChecked(new Set());
     flash(ok && skip ? "warn" : ok ? "ok" : "warn",
@@ -320,22 +359,22 @@ export default function CadastralMoviment() {
       : ok ? `${ok} movimentação(ões) aprovada(s).` : "Nenhuma aprovada — há erro bloqueante.");
   };
 
-  const doReject = (ids, motivo) => {
+  const doReject = (ids: string[], motivo: string) => {
     setRecords(prev => prev.map(r => ids.includes(r.id) && r.status === "pendente"
-      ? { ...r, status: "rejeitado", timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "humano", tipo: "estado", autor: ANALISTA, quando: now(), texto: "Rejeitada. Motivo: " + motivo }]) }
+      ? { ...r, status: "rejeitado" as const, timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "humano", tipo: "estado", autor: ANALISTA, quando: now(), texto: "Rejeitada. Motivo: " + motivo }]) }
       : r
     ));
     setChecked(new Set()); setModal(null); setRejectCtx(null);
     flash("ok", ids.length + " movimentação(ões) rejeitada(s).");
   };
 
-  const desabilitar = id => {
+  const desabilitar = (id: string) => {
     patch(id, { status: "desabilitado" }, [{ id: id + Date.now(), origem: "humano", tipo: "estado", autor: ANALISTA, quando: now(), texto: "Movimentação desabilitada (soft-delete). Fora das exportações." }]);
     flash("ok", "Desabilitada. Permanece no histórico.");
   };
 
-  const confirmarRetorno = (id, ok) => {
-    const r = records.find(x => x.id === id);
+  const confirmarRetorno = (id: string, ok: boolean) => {
+    const r = records.find(x => x.id === id)!;
     if (ok) patch(id, { status: "confirmado", coreApplied: true }, [
       { id: id + Date.now() + "a", origem: "sistema", tipo: "estado", autor: "Operadora/Seguradora", quando: now(), texto: "Retorno recebido: confirmado." },
       { id: id + Date.now() + "b", origem: "sistema", tipo: "core",   autor: "Alper Core",          quando: now(), texto: "Emitido ao Alper Core: " + r.coreEffect + "." }
@@ -344,10 +383,10 @@ export default function CadastralMoviment() {
     flash(ok ? "ok" : "warn", ok ? "Confirmada e aplicada ao Alper Core." : "Recusada pela operadora/seguradora.");
   };
 
-  const compensar = id => {
-    const r   = records.find(x => x.id === id);
+  const compensar = (id: string) => {
+    const r   = records.find(x => x.id === id)!;
     const nid = "R" + (90 + records.length);
-    const novo = { ...r, id: nid, status: "pendente", validacoes: [], compensaDe: r.id, campos: { ...r.campos },
+    const novo: Movimentacao = { ...r, id: nid, status: "pendente", validacoes: [], compensaDe: r.id, campos: { ...r.campos }, coreApplied: undefined,
       timeline: [{ id: nid + "-t0", origem: "sistema", tipo: "estado", autor: "Atlas", quando: now(), texto: `Movimentação compensatória gerada a partir de ${r.id} (recusada).` }]
     };
     setRecords(prev => [novo, ...prev]);
@@ -355,18 +394,20 @@ export default function CadastralMoviment() {
     flash("ok", `Movimentação compensatória ${nid} criada. O evento original permanece imutável.`);
   };
 
-  const exportar = cpNome => {
+  const exportar = (cpNome: string) => {
     const el = brecs.filter(r => r.destino.nome === cpNome && r.status === "aprovado");
     if (!el.length) { flash("warn", "Nenhuma aprovada para " + cpNome + "."); return; }
-    const art = { id: "ARQ-" + (artifacts.length + 1), cp: cpNome, layout: layoutV(cpNome), quando: now(), arquivo: cpNome.replace(/\s/g, "_").toUpperCase() + "_" + selBatch + ".csv", n: el.length };
+    const art: Artifact = { id: "ARQ-" + (artifacts.length + 1), cp: cpNome, layout: layoutV(cpNome), quando: now(), arquivo: cpNome.replace(/\s/g, "_").toUpperCase() + "_" + selBatch + ".csv", n: el.length };
     setArtifacts(p => [art, ...p]);
     setRecords(prev => prev.map(r => el.find(e => e.id === r.id)
-      ? { ...r, status: "exportado", timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "sistema", tipo: "estado", autor: "Exportação", quando: now(), texto: `Incluída no arquivo ${art.arquivo} (layout ${art.layout}).` }]) }
+      ? { ...r, status: "exportado" as const, timeline: r.timeline.concat([{ id: r.id + Date.now(), origem: "sistema", tipo: "estado", autor: "Exportação", quando: now(), texto: `Incluída no arquivo ${art.arquivo} (layout ${art.layout}).` }]) }
       : r
     ));
     setModal(null);
     flash("ok", `Arquivo gerado: ${art.arquivo} · ${el.length} vida(s).`);
   };
+
+  const selRecord = sel ? records.find(x => x.id === sel) : undefined;
 
   return (
     <div className="app app--slim">
@@ -398,10 +439,8 @@ export default function CadastralMoviment() {
               <h1>{batch.cliente}</h1>
               <div className="m-sub">
                 <span className="mono">{batch.id}</span>
-                <span className="dot">·</span>
-                Competência {batch.competencia}
-                <span className="dot">·</span>
-                Origem: {batch.fonte}
+                <span className="dot">·</span>Competência {batch.competencia}
+                <span className="dot">·</span>Origem: {batch.fonte}
               </div>
             </div>
             <div className="m-actions">
@@ -482,17 +521,17 @@ export default function CadastralMoviment() {
       </main>
 
       {/* ===== Overlays ===== */}
-      {sel && (
-        <Drawer r={records.find(x => x.id === sel)} onClose={() => setSel(null)} patch={patch}
-          onApprove={() => approve([sel])}
-          onReject={() => { setRejectCtx({ ids: [sel] }); setModal("reject"); }}
-          onDisable={() => desabilitar(sel)}
-          onReturn={ok => confirmarRetorno(sel, ok)}
-          onCompensate={() => compensar(sel)}
+      {selRecord && (
+        <Drawer r={selRecord} onClose={() => setSel(null)} patch={patch}
+          onApprove={() => approve([sel!])}
+          onReject={() => { setRejectCtx({ ids: [sel!] }); setModal("reject"); }}
+          onDisable={() => desabilitar(sel!)}
+          onReturn={ok => confirmarRetorno(sel!, ok)}
+          onCompensate={() => compensar(sel!)}
           flash={flash} />
       )}
       {modal === "export" && <ExportModal brecs={brecs} artifacts={artifacts} onExport={exportar} onClose={() => setModal(null)} />}
-      {modal === "reject" && <RejectModal count={rejectCtx.ids.length} onConfirm={m => doReject(rejectCtx.ids, m)} onClose={() => { setModal(null); setRejectCtx(null); }} />}
+      {modal === "reject" && rejectCtx && <RejectModal count={rejectCtx.ids.length} onConfirm={m => doReject(rejectCtx.ids, m)} onClose={() => { setModal(null); setRejectCtx(null); }} />}
       {modal === "diary"  && <DiaryModal batch={batch} onClose={() => setModal(null)} />}
       {toast && <Toast k={toast.k} m={toast.m} />}
     </div>
