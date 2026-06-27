@@ -4,10 +4,10 @@
 
 :root{
   --font-sans: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --green:#16a34a; --green-d:#15803d; --green-50:#f0fdf4; --green-100:#dcfce7;
-  --navy:#1e3a8a; --navy-d:#172554; --navy-50:#eff6ff; --navy-100:#dbeafe; --navy-200:#bfdbfe; --navy-700:#1d4ed8;
+  --green:#06805B; --green-d:#05674A; --green-50:#e6f4ef; --green-100:#c0e3d5;
+  --navy:#143D6B; --navy-d:#0F2D50; --navy-50:#e8eef5; --navy-100:#c5d4e6; --navy-200:#9bb3d3; --navy-700:#0F2D50;
   --blue:#3b82f6; --blue-d:#2563eb; --blue-50:#eff6ff; --blue-100:#dbeafe;
-  --teal:#2563eb; --teal-d:#1d4ed8; --teal-50:#eff6ff; --teal-100:#dbeafe;
+  --teal:#2C7A93; --teal-d:#236179; --teal-50:#e8f4f8; --teal-100:#c2dfe9;
   --rose:#e11d48; --rose-50:#fff1f2; --rose-100:#ffe4e6; --rose-200:#fecdd3;
   --amber:#d97706; --amber-50:#fffbeb; --amber-100:#fef3c7; --amber-200:#fde68a; --amber-300:#fcd34d;
   --ink:#111827; --slate:#374151; --mute:#6b7280; --soft:#9ca3af; --line:#e5e7eb; --line2:#f3f4f6; --bg:#f9fafb; --cream:#f8fafc;

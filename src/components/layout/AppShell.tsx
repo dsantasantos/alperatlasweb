@@ -3,6 +3,7 @@ import { I } from '../shared/Icons';
 import type { IconName } from '../shared/Icons';
 import logoUrl from '../../assets/logoalper-trans.png';
 import CadastralMoviment from '../../pages/moviment/CadastralMoviment';
+import CadastralMovimentDefaut from '../../pages/moviment/CadastralMovimentDefaut';
 import Documentation from '../../pages/admin/Documentation';
 import type { Session } from '../../types';
 
@@ -15,7 +16,8 @@ const NAV: NavGroup[] = [
     group: 'Movimentação',
     icon: 'swap',
     items: [
-      { id: 'cadastral-moviment', label: 'Movimentação Cadastral', icon: 'package' }
+      { id: 'cadastral-moviment', label: 'Movimentação Cadastral', icon: 'package' },
+      { id: 'cadastral-moviment-default', label: 'Movimentação Cadastral (API)', icon: 'package' }
     ]
   },
   {
@@ -130,6 +132,7 @@ export default function AppShell({ session, onLogout }: AppShellProps) {
       {/* ===== Page content ===== */}
       <div className="shell-content">
         {activePage === 'cadastral-moviment' && <CadastralMoviment />}
+        {activePage === 'cadastral-moviment-default' && <CadastralMovimentDefaut />}
         {activePage === 'documentation' && <Documentation />}
       </div>
     </div>

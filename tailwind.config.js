@@ -1,12 +1,13 @@
 const colors = {
   alper: {
-    green: '#16a34a',
-    greenDark: '#15803d',
-    navy: '#1e3a8a',
-    navyDark: '#172554',
+    green: '#06805B',
+    greenDark: '#05674A',
+    navy: '#143D6B',
+    navyDark: '#0F2D50',
     blue: '#3b82f6',
     blueDark: '#2563eb',
-    teal: '#2563eb',
+    teal: '#2C7A93',
+    tealDark: '#236179',
     rose: '#e11d48',
     amber: '#d97706',
     ink: '#111827',
