@@ -1,7 +1,7 @@
 import { httpClient } from './client';
-import type { ApiSchemaFull } from './types';
+import type { ApiSchema } from './types';
 
 export const schemasApi = {
   get: (operationTypeKey: string) =>
-    httpClient.get<ApiSchemaFull>(`/api/schemas/${operationTypeKey}`),
+    httpClient.get<ApiSchema>(`/api/schemas/${operationTypeKey}`),
 };

@@ -1,4 +1,5 @@
-// CONTRACT VERSION: 1.0 — mirrors API Atlas v1 endpoints
+// CONTRACT VERSION: 2.0 — mirrors API Atlas v1 endpoints
+// Schema source changed: GET /api/schemas/{key} is now authoritative (not batch detail).
 // DO NOT change without updating the backend contract simultaneously.
 
 // ===== Auth =====
@@ -9,25 +10,17 @@ export interface ApiTokenResponse {
   expires_in: number;
 }
 
-// ===== Schema =====
+// ===== Schema (from GET /api/schemas/{operationTypeKey}) =====
 
-export interface ApiBatchSchemaField {
+export interface ApiSchemaField {
   key: string;
   displayLabel: string;
   displayOrder: number;
-}
-
-export interface ApiBatchSchema {
-  displayName: string;
-  fields: ApiBatchSchemaField[];
-}
-
-export interface ApiSchemaField extends ApiBatchSchemaField {
+  dataType: string;    // "text" | "date" | "datetime" | "cpf" | "cnpj" | "numeric" | "enum"
   isRequired: boolean;
-  typeHint: string;
 }
 
-export interface ApiSchemaFull {
+export interface ApiSchema {
   operationTypeKey: string;
   displayName: string;
   validationRuleKeys: string[];
@@ -115,7 +108,6 @@ export interface ApiBatchDetail {
   sourceChannel: string;
   state: string;
   receivedAt: string;
-  schema: ApiBatchSchema;
   occurrences: {
     items: ApiOccurrenceListItem[];
     totalCount: number;

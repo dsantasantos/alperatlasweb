@@ -1,6 +1,6 @@
 # UI Contracts: CadastralMovimentDefaut Components
 
-**Contract Version**: 1.0 | **Date**: 2026-06-27
+**Contract Version**: 2.0 | **Date**: 2026-06-27 | **Last Updated**: 2026-06-27
 
 ---
 
@@ -17,20 +17,42 @@ No action affordances. Read-only display.
 
 ---
 
+## OccurrenceTable
+
+```ts
+interface OccurrenceTableProps {
+  schema: ApiSchemaField[];               // from GET /api/schemas/cadastral-movement
+  occurrences: ApiOccurrenceListItem[];
+  checked: Set<string>;
+  onCheck: (id: string) => void;
+  onCheckAll: () => void;
+  onOpen: (id: string) => void;
+}
+```
+
+Renders columns in this order:
+1. Dynamic columns: one `<th>` per `schema` field, sorted ascending by `displayOrder`,
+   using `displayLabel` as the header text.
+2. Fixed "Conferência" column (penultimate).
+3. Fixed "Status" column (last).
+
+---
+
 ## Row
 
 ```ts
 interface RowProps {
   r: ApiOccurrenceListItem;
-  label: Record<string, string>;   // schema-derived, never hardcoded
+  schema: ApiSchemaField[];             // for label lookup and field ordering
   checked: boolean;
   onCheck: () => void;
   onOpen: () => void;
 }
 ```
 
-Field values accessed via `getField(r.fields, key)`. Row severity class derived from
-`r.hasBlockingErrors` and `r.validationSummary.warningCount`.
+Field values accessed via `getField(r.fields, key)`, in `displayOrder`. Row severity
+class derived from `r.hasBlockingErrors` and `r.validationSummary.warningCount`.
+Fixed-column cells ("Conferência", "Status") are always rendered regardless of schema.
 
 ---
 
@@ -40,7 +62,7 @@ Field values accessed via `getField(r.fields, key)`. Row severity class derived 
 interface ValidationGroupProps {
   title: string;
   hint: string;
-  items: ApiValidation[];         // filtered by dimension before passing
+  items: ApiValidation[];   // filtered by dimension before passing
 }
 ```
 
@@ -53,13 +75,16 @@ Used twice in the Drawer: once for `dimension === 'Capture'`, once for `'Movemen
 ```ts
 interface DrawerProps {
   detail: ApiOccurrenceDetail;
-  schema: ApiBatchSchemaField[];   // for label lookup and field ordering
+  schema: ApiSchemaField[];           // from GET /api/schemas/cadastral-movement
   onClose: () => void;
   onUpdate: (updated: ApiOccurrenceDetail) => void;  // after API action
   flash: (k: 'ok' | 'warn' | 'info', m: string) => void;
 }
 ```
 
+Edit form renders one input per schema field, in ascending `displayOrder`.
+Input control type is determined by `resolveInputType(field.dataType)`.
+All schema-driven fields are editable (no read-only fields concept).
 Drawer handles field editing (PATCH), approve, and disable internally.
 Reject opens a child `RejectModal`.
 
@@ -91,7 +116,11 @@ Confirm button disabled until `reason.trim()` is non-empty.
 function getField(fields: ApiOccurrenceField[], key: string): string
 
 // Build label map from schema fields (key → displayLabel).
-function makeLabel(fields: ApiBatchSchemaField[]): Record<string, string>
+function makeLabel(fields: ApiSchemaField[]): Record<string, string>
+
+// Resolve the HTML input type for a schema field's dataType.
+// "date" → "date", "datetime" → "datetime-local", all others → "text"
+function resolveInputType(dataType: string): 'text' | 'date' | 'datetime-local'
 
 // Map API severity string to severity class.
 function mapSev(severity: string): 'erro' | 'aviso' | 'info'

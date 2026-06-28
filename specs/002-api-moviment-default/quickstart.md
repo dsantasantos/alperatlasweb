@@ -82,16 +82,23 @@ sidebar after logging in.
 ## 7. Smoke-Check Validation
 
 1. Navigate to the new screen.
-2. Confirm the batch rail populates from the API (not hardcoded seed).
-3. Select a batch — confirm occurrence table columns use `displayLabel` from the API
-   schema (not hardcoded "Beneficiário", "Operadora / Seguradora", etc.).
-4. Click a row — confirm the drawer loads from `GET /api/occurrences/{id}`.
-5. Edit a field and save — confirm `PATCH /fields/{key}` is called and validations
-   update in the drawer without a full reload.
-6. Approve a non-blocked occurrence — confirm `POST /approve` succeeds and the row
-   updates to "Aprovado".
-7. Reject an occurrence — confirm the reason modal appears and `POST /reject` is called.
-8. Click "Exportar XLSX" — confirm an XLSX file downloads.
+2. Open the browser Network tab — confirm `GET /api/schemas/cadastral-movement` fires
+   on mount (once) and `GET /api/batches` fires in parallel.
+3. Confirm the batch rail populates from the API (not hardcoded seed).
+4. Select a different batch — confirm **no second** `GET /api/schemas/...` request fires
+   (schema is cached for the session).
+5. Confirm the occurrence table columns (excluding the last two) use `displayLabel`
+   values from the schema response — no hardcoded labels like "Beneficiário".
+6. Confirm "Conferência" and "Status" are the last two columns in every table.
+7. Click a row — confirm the drawer loads from `GET /api/occurrences/{id}`.
+8. Confirm form fields in the drawer match the schema field list, in `displayOrder`.
+9. Confirm `date`/`datetime` fields render a date picker; all others render text inputs.
+10. Edit a field and save — confirm `PATCH /fields/{key}` is called and validations
+    update in the drawer without a full reload.
+11. Approve a non-blocked occurrence — confirm `POST /approve` succeeds and the row
+    updates to "Aprovado".
+12. Reject an occurrence — confirm the reason modal appears and `POST /reject` is called.
+13. Click "Exportar XLSX" — confirm an XLSX file downloads.
 
 ---
 

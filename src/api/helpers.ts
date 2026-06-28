@@ -1,11 +1,17 @@
-import type { ApiOccurrenceField, ApiBatchSchemaField } from './types';
+import type { ApiOccurrenceField, ApiSchemaField } from './types';
 
 export function getField(fields: ApiOccurrenceField[], key: string): string {
   return fields.find(f => f.key === key)?.value ?? '—';
 }
 
-export function makeLabel(fields: ApiBatchSchemaField[]): Record<string, string> {
+export function makeLabel(fields: ApiSchemaField[]): Record<string, string> {
   return Object.fromEntries(fields.map(f => [f.key, f.displayLabel]));
+}
+
+export function resolveInputType(dataType: string): 'text' | 'date' | 'datetime-local' {
+  if (dataType === 'date') return 'date';
+  if (dataType === 'datetime') return 'datetime-local';
+  return 'text';
 }
 
 export function mapSev(severity: string): 'erro' | 'aviso' | 'info' {

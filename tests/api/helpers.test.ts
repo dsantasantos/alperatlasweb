@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { makeLabel, mapSev, getField, stateMeta } from '../../src/api/helpers';
-import type { ApiBatchSchemaField, ApiOccurrenceField } from '../../src/api/types';
+import { makeLabel, mapSev, getField, stateMeta, resolveInputType } from '../../src/api/helpers';
+import type { ApiSchemaField, ApiOccurrenceField } from '../../src/api/types';
 
 const mockProvenance = { state: 'Automatic', description: '' };
 
@@ -8,14 +8,18 @@ const makeField = (key: string, value: string): ApiOccurrenceField => ({
   key, value, originalValue: null, lastEditedBy: null, lastEditedAt: null, provenance: mockProvenance,
 });
 
+const makeSchemaField = (key: string, displayLabel: string, displayOrder: number): ApiSchemaField => ({
+  key, displayLabel, displayOrder, dataType: 'text', isRequired: false,
+});
+
 // ===== makeLabel =====
 
 describe('makeLabel', () => {
-  it('builds a Record<string, string> from ApiBatchSchemaField[]', () => {
-    const fields: ApiBatchSchemaField[] = [
-      { key: 'nome',    displayLabel: 'Beneficiário', displayOrder: 1 },
-      { key: 'cpf',     displayLabel: 'CPF / CNPJ',   displayOrder: 2 },
-      { key: 'destino', displayLabel: 'Operadora',     displayOrder: 3 },
+  it('builds a Record<string, string> from ApiSchemaField[]', () => {
+    const fields: ApiSchemaField[] = [
+      makeSchemaField('nome',    'Beneficiário', 1),
+      makeSchemaField('cpf',     'CPF / CNPJ',   2),
+      makeSchemaField('destino', 'Operadora',     3),
     ];
     expect(makeLabel(fields)).toEqual({
       nome: 'Beneficiário',
@@ -29,12 +33,46 @@ describe('makeLabel', () => {
   });
 
   it('uses displayLabel not field key', () => {
-    const fields: ApiBatchSchemaField[] = [
-      { key: 'cpf', displayLabel: 'Cadastro de Pessoa Física', displayOrder: 1 },
+    const fields: ApiSchemaField[] = [
+      makeSchemaField('cpf', 'Cadastro de Pessoa Física', 1),
     ];
     const label = makeLabel(fields);
     expect(label['cpf']).toBe('Cadastro de Pessoa Física');
     expect(label['cpf']).not.toBe('cpf');
+  });
+});
+
+// ===== resolveInputType =====
+
+describe('resolveInputType', () => {
+  it("maps 'date' to 'date'", () => {
+    expect(resolveInputType('date')).toBe('date');
+  });
+
+  it("maps 'datetime' to 'datetime-local'", () => {
+    expect(resolveInputType('datetime')).toBe('datetime-local');
+  });
+
+  it("maps 'text' to 'text'", () => {
+    expect(resolveInputType('text')).toBe('text');
+  });
+
+  it("maps 'cpf' to 'text'", () => {
+    expect(resolveInputType('cpf')).toBe('text');
+  });
+
+  it("maps 'cnpj' to 'text'", () => {
+    expect(resolveInputType('cnpj')).toBe('text');
+  });
+
+  it("maps 'numeric' to 'text'", () => {
+    expect(resolveInputType('numeric')).toBe('text');
+  });
+
+  it("maps unknown dataType to 'text'", () => {
+    expect(resolveInputType('enum')).toBe('text');
+    expect(resolveInputType('')).toBe('text');
+    expect(resolveInputType('anything')).toBe('text');
   });
 });
 

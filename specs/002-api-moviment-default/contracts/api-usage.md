@@ -1,6 +1,6 @@
 # API Usage Contract: CadastralMovimentDefaut
 
-**Contract Version**: 1.0 | **Date**: 2026-06-27
+**Contract Version**: 2.0 | **Date**: 2026-06-27 | **Last Updated**: 2026-06-27
 
 Documents how `CadastralMovimentDefaut.tsx` and `src/api/` interact with the
 backend. Source of truth: `api-atlas-endpoints.md`.
@@ -20,6 +20,24 @@ grant_type=client_credentials&client_id={id}&client_secret={secret}
 
 ---
 
+## Schema — Fetch on Mount, Cache for Session (src/api/schemas.ts)
+
+```
+GET /api/schemas/cadastral-movement
+Authorization: Bearer <token>
+
+→ 200: ApiSchema
+       ├── fields[] sorted by displayOrder → drives column headers
+       ├── fields[].dataType → drives edit form input control type
+       └── fields[].displayLabel → all column and field labels
+→ Fetched ONCE on screen mount; cached in component state
+→ Not re-fetched on batch selection
+→ 401 → display auth error banner
+→ Network error → display schema load error; block table render
+```
+
+---
+
 ## Batch Rail — Load on Mount (src/api/batches.ts)
 
 ```
@@ -33,15 +51,16 @@ Authorization: Bearer <token>
 
 ---
 
-## Batch Detail + Schema (src/api/batches.ts)
+## Batch Detail (src/api/batches.ts)
 
 ```
 GET /api/batches/{batchId}?pageSize=200
 Authorization: Bearer <token>
 
 → 200: ApiBatchDetail
-       ├── schema.fields[] → drives column headers and field order
        └── occurrences.items[] → populates the occurrence table
+→ Any inline schema in this response is IGNORED for rendering;
+  column and field definitions come exclusively from the schema cached on mount
 → 404 → flash warn
 ```
 
@@ -66,7 +85,7 @@ GET /api/occurrences/{occurrenceId}
 Authorization: Bearer <token>
 
 → 200: ApiOccurrenceDetail
-       ├── fields[] → rendered in displayOrder from schema
+       ├── fields[] → rendered using schema displayOrder and displayLabel
        └── validations[] → grouped by dimension (Capture / Movement)
 → Triggered when analyst clicks a row
 ```
@@ -142,9 +161,23 @@ Authorization: Bearer <token>
 
 ---
 
+## Mount Sequence
+
+```
+1. GET /api/schemas/cadastral-movement  → cache schema in state
+2. GET /api/batches                     → populate batch rail, auto-select first
+3. GET /api/batches/{firstId}           → load occurrences for selected batch
+4. GET /api/batches/{firstId}/summary   → populate summary bar
+```
+
+Steps 1 and 2 can be parallelised. Steps 3 and 4 depend on step 2's selected batch id.
+
+---
+
 ## Error Handling Convention
 
 All API calls use `httpClient` from `src/api/client.ts`. On non-2xx:
 - Throws `ApiError(status, body)`
 - Screen catches and calls `flash('warn', message)`
 - 401 on mount → shows persistent error banner (not a toast)
+- Schema fetch failure → renders error state instead of table (cannot render without schema)

@@ -1,13 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Row } from '../../src/pages/moviment/CadastralMovimentDefaut';
-import type { ApiOccurrenceListItem } from '../../src/api/types';
+import type { ApiOccurrenceListItem, ApiSchemaField } from '../../src/api/types';
 
 const prov = { state: 'Automatic', description: '' };
 
 const makeField = (key: string, value: string) => ({
   key, value, originalValue: null, lastEditedBy: null, lastEditedAt: null, provenance: prov,
 });
+
+const makeSchemaField = (key: string, displayLabel: string, displayOrder: number): ApiSchemaField => ({
+  key, displayLabel, displayOrder, dataType: 'text', isRequired: false,
+});
+
+const mockSchema: ApiSchemaField[] = [
+  makeSchemaField('tipo',       'Tipo de Evento',    1),
+  makeSchemaField('nome',       'Beneficiário',      2),
+  makeSchemaField('cpf',        'CPF',               3),
+  makeSchemaField('destino',    'Operadora',         4),
+  makeSchemaField('plano',      'Plano',             5),
+  makeSchemaField('parentesco', 'Tipo de Titular',   6),
+];
 
 const mockOccurrence: ApiOccurrenceListItem = {
   occurrenceId: 'occ-1',
@@ -26,10 +39,10 @@ const mockOccurrence: ApiOccurrenceListItem = {
 };
 
 describe('Row', () => {
-  it('renders field values from ApiOccurrenceField[] (not hardcoded strings)', () => {
+  it('renders field values from schema in displayOrder (not hardcoded columns)', () => {
     render(
       <table><tbody>
-        <Row r={mockOccurrence} checked={false} onCheck={() => {}} onOpen={() => {}} />
+        <Row r={mockOccurrence} schema={mockSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
       </tbody></table>
     );
     expect(screen.getByText('João da Silva')).toBeInTheDocument();
@@ -41,7 +54,7 @@ describe('Row', () => {
   it('shows "conforme" chip when there are no validation errors or warnings', () => {
     render(
       <table><tbody>
-        <Row r={mockOccurrence} checked={false} onCheck={() => {}} onOpen={() => {}} />
+        <Row r={mockOccurrence} schema={mockSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
       </tbody></table>
     );
     expect(screen.getByText('conforme')).toBeInTheDocument();
@@ -55,7 +68,7 @@ describe('Row', () => {
     };
     render(
       <table><tbody>
-        <Row r={errOcc} checked={false} onCheck={() => {}} onOpen={() => {}} />
+        <Row r={errOcc} schema={mockSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
       </tbody></table>
     );
     expect(screen.getByText(/2 erros/)).toBeInTheDocument();
@@ -64,9 +77,24 @@ describe('Row', () => {
   it('renders Pendente state badge for Pending occurrences', () => {
     render(
       <table><tbody>
-        <Row r={mockOccurrence} checked={false} onCheck={() => {}} onOpen={() => {}} />
+        <Row r={mockOccurrence} schema={mockSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
       </tbody></table>
     );
     expect(screen.getByText('Pendente')).toBeInTheDocument();
+  });
+
+  it('renders one cell per schema field (dynamic column count)', () => {
+    const smallSchema: ApiSchemaField[] = [
+      makeSchemaField('nome', 'Nome', 1),
+      makeSchemaField('cpf',  'CPF',  2),
+    ];
+    const { container } = render(
+      <table><tbody>
+        <Row r={mockOccurrence} schema={smallSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
+      </tbody></table>
+    );
+    // checkbox + 2 dynamic + Conferência + Status + chevron = 6 cells
+    const cells = container.querySelectorAll('td');
+    expect(cells).toHaveLength(6);
   });
 });
