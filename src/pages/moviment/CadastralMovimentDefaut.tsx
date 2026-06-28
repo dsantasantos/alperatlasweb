@@ -6,6 +6,7 @@ import { occurrencesApi } from '../../api/occurrences';
 import { schemasApi } from '../../api/schemas';
 import { ApiError } from '../../api/client';
 import { getField, makeLabel, resolveInputType, mapSev, stateMeta } from '../../api/helpers';
+import { translateChangeType, translateValidationMessage } from '../../i18n/glossary';
 import type {
   ApiSchema,
   ApiSchemaField,
@@ -69,7 +70,7 @@ function AuditDiaryPanel({ entries, loading, error, collapsed, onToggle }: Audit
           {!loading && !error && entries.map((e, i) => (
             <div key={i} className="audit-row">
               <span className="audit-at">{new Date(e.changedAt).toLocaleString('pt-BR')}</span>
-              <span className="audit-type">{e.changeType}</span>
+              <span className="audit-type">{translateChangeType(e.changeType)}</span>
               <span className="audit-actor">{e.actorId}</span>
               <span className="audit-desc">{e.description}</span>
             </div>
@@ -163,7 +164,7 @@ function ValidationGroup({ title, hint, items }: ValidationGroupProps) {
               <div key={i} className={'vitem ' + k}>
                 <div className="vitem-msg">
                   <I n={ic as never} s={16} cls="vitem-ic" />
-                  <span>{v.message}</span>
+                  <span>{translateValidationMessage(v.message)}</span>
                 </div>
               </div>
             );
@@ -524,7 +525,7 @@ function DiaryModal({ entries, loading, error, onClose }: DiaryModalProps) {
       {!loading && !error && entries.map((e, i) => (
         <div key={i} className="audit-row">
           <span className="audit-at">{new Date(e.changedAt).toLocaleString('pt-BR')}</span>
-          <span className="audit-type">{e.changeType}</span>
+          <span className="audit-type">{translateChangeType(e.changeType)}</span>
           <span className="audit-actor">{e.actorId}</span>
           <span className="audit-desc">{e.description}</span>
         </div>
