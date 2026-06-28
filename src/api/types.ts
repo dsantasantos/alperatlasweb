@@ -1,7 +1,8 @@
-// CONTRACT VERSION: 3.0 — mirrors API Atlas v1 endpoints
+// CONTRACT VERSION: 4.0 — mirrors API Atlas v1 endpoints
 // Schema source changed: GET /api/schemas/{key} is now authoritative (not batch detail).
 // 3.0 additions: movementType on ApiOccurrenceListItem, notes/ApiOccurrenceNote on
 // ApiOccurrenceDetail, ApiBatchAuditEntry for GET /api/batches/{id}/audit.
+// 4.0 additions: profile on ApiTokenResponse; /auth/login replaces /token.
 // DO NOT change without updating the backend contract simultaneously.
 
 // ===== Auth =====
@@ -10,6 +11,7 @@ export interface ApiTokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
+  profile: string;
 }
 
 // ===== Schema (from GET /api/schemas/{operationTypeKey}) =====

@@ -106,6 +106,7 @@ export interface Batch {
 export interface Session {
   name: string;
   role: string;
+  profile: string;
 }
 
 export interface Artifact {

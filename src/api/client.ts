@@ -1,9 +1,12 @@
 // In-memory token store (per constitution: no localStorage/sessionStorage)
 let _token: string | null = null;
+let _expiresAt: number | null = null;
 
-export function setAuthToken(token: string): void { _token = token; }
-export function clearAuthToken(): void             { _token = null;  }
-export function hasAuthToken(): boolean            { return _token !== null; }
+export function setAuthToken(token: string): void   { _token = token; }
+export function setTokenExpiry(expiresIn: number): void { _expiresAt = Date.now() + expiresIn * 1000; }
+export function clearAuthToken(): void              { _token = null; _expiresAt = null; }
+export function hasAuthToken(): boolean             { return _token !== null; }
+export function isTokenExpired(): boolean           { return _expiresAt !== null && Date.now() > _expiresAt; }
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly body: string) {
@@ -22,6 +25,11 @@ async function request<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
+  if (isTokenExpired()) {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw new ApiError(401, 'token expired');
+  }
+
   const headers: Record<string, string> = { ...authHeaders() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 
@@ -33,6 +41,7 @@ async function request<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:expired'));
     throw new ApiError(res.status, text);
   }
   if (res.status === 204) return undefined as T;

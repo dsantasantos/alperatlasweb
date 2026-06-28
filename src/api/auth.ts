@@ -1,22 +1,14 @@
-import { setAuthToken, ApiError } from './client';
+import { setAuthToken, setTokenExpiry, ApiError } from './client';
 import type { ApiTokenResponse } from './types';
+import type { Session } from '../types';
 
 const base = (): string => (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
 
-export async function loginWithCredentials(
-  clientId: string,
-  clientSecret: string,
-): Promise<void> {
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret,
-  });
-
-  const res = await fetch(`${base()}/token`, {
+export async function login(username: string, password: string): Promise<Session> {
+  const res = await fetch(`${base()}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
   });
 
   if (!res.ok) {
@@ -26,4 +18,7 @@ export async function loginWithCredentials(
 
   const data = (await res.json()) as ApiTokenResponse;
   setAuthToken(data.access_token);
+  setTokenExpiry(data.expires_in);
+
+  return { name: data.profile, role: 'user', profile: data.profile };
 }

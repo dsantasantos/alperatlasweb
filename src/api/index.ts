@@ -1,5 +1,5 @@
-export { httpClient, setAuthToken, clearAuthToken, hasAuthToken, ApiError } from './client';
-export { loginWithCredentials } from './auth';
+export { httpClient, setAuthToken, clearAuthToken, hasAuthToken, setTokenExpiry, isTokenExpired, ApiError } from './client';
+export { login } from './auth';
 export { batchesApi } from './batches';
 export { occurrencesApi } from './occurrences';
 export { schemasApi } from './schemas';

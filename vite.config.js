@@ -10,7 +10,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
-      '/token': {
+      '/auth': {
         target: 'https://localhost:7113',
         changeOrigin: true,
         secure: false,
