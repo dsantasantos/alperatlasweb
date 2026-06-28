@@ -18,6 +18,17 @@ be fully dynamic. The schema that drives them comes from `GET /api/schemas/cadas
 The "Conferência" and "Status" columns are pinned and appear in every table regardless
 of the schema response.
 
+**Update (2026-06-28)**: Four enhancements added:
+(1) `movementType` (New / Edit / Remove) from `/api/occurrences/` must appear as the
+**first column** of the table.
+(2) A batch audit diary panel must be shown at the top of the screen, consuming
+`GET /api/batches/{id}/audit` (fields: `changedAt`, `changeType`, `actorId`, `description`).
+(3) The occurrence detail drawer must include a notes section (Histórico · auditoria e
+diário) that lists existing notes and allows the analyst to add a new note via
+`POST /api/occurrences/{id}/notes` with `{ "text": "..." }`.
+(4) Batch operations (approve, reject, disable) must be available for all rows selected
+via the table checkboxes, each calling the corresponding batch endpoint.
+
 ## User Scenarios & Testing
 
 ### User Story 1 — Analyst Reviews Batch Occurrences (Priority: P1)
@@ -116,6 +127,99 @@ approved occurrences of the selected batch.
 
 ---
 
+### User Story 5 — Analyst Views Batch Audit Diary (Priority: P2)
+
+When the analyst opens the CadastralMovimentDefaut screen for a batch, a diary panel
+at the top of the screen shows the complete change history of that batch. Each entry
+displays when the change happened, what type of change it was, who performed it, and
+a description of the change.
+
+**Why this priority**: Gives the analyst immediate context about the batch's history
+before reviewing individual occurrences.
+
+**Independent Test**: Load the screen for a batch → the diary panel at the top renders
+entries from `GET /api/batches/{id}/audit` with `changedAt`, `changeType`, `actorId`,
+and `description` visible.
+
+**Acceptance Scenarios**:
+
+1. **Given** the screen loads for a batch, **When** the audit endpoint responds,
+   **Then** the diary panel at the top shows each audit entry with its `changedAt`,
+   `changeType`, `actorId`, and `description`.
+2. **Given** the batch has no audit entries, **When** the diary panel renders,
+   **Then** an empty state is shown (no error, no crash).
+3. **Given** a batch is selected from the rail, **When** the user switches to a
+   different batch, **Then** the diary panel updates to reflect the newly selected
+   batch's audit history.
+
+---
+
+### User Story 6 — Analyst Adds and Views Occurrence Notes (Priority: P2)
+
+Inside the occurrence detail drawer, the analyst sees the "Histórico · auditoria e
+diário" section. They can read existing notes left by themselves or colleagues, and
+add a new annotation via a text input. After submitting, the new note appears in the
+list immediately.
+
+**Why this priority**: Allows analysts to communicate context, flag issues, or leave
+a trail of decisions for colleagues.
+
+**Independent Test**: Open a drawer → notes section renders → type a note → submit →
+new note appears in the list from `GET /api/occurrences/{id}/notes`.
+
+**Acceptance Scenarios**:
+
+1. **Given** the drawer opens for an occurrence, **When** the occurrence detail loads
+   from `GET /api/occurrences/{id}`, **Then** the `notes` array embedded in the
+   response is rendered chronologically (each entry shows `text`, `authorId`, and
+   `createdAt`).
+2. **Given** the analyst types a note and submits, **When** `POST /api/occurrences/{id}/notes`
+   with `{ "text": "..." }` responds successfully, **Then** the note list refreshes
+   and the new note appears without closing the drawer.
+3. **Given** the note input is empty, **When** the analyst attempts to submit,
+   **Then** submission is prevented and a validation message is shown.
+4. **Given** the notes endpoint fails, **When** the drawer renders, **Then** an error
+   message is shown in the notes section and the rest of the drawer still works.
+
+---
+
+### User Story 7 — Analyst Performs Batch Approve / Reject / Disable (Priority: P2)
+
+The analyst selects multiple occurrences using the table checkboxes, then triggers
+a batch action (approve, reject, or disable) that applies to all selected rows in
+a single operation. Rejected batches require a reason.
+
+**Why this priority**: Processing occurrences one by one is impractical at scale;
+batch actions are the primary efficiency lever for high-volume batches.
+
+**Independent Test**: Select 3 rows via checkboxes → click "Approve all" → table
+updates all 3 rows to "Aprovado" after a single `POST /api/occurrences/batch/approve`.
+
+**Acceptance Scenarios**:
+
+1. **Given** one or more rows are selected, **When** "Approve" is triggered,
+   **Then** `POST /api/occurrences/batch/approve` is called with all selected
+   `occurrenceIds` and each row updates to "Aprovado".
+2. **Given** one or more rows are selected, **When** "Reject" is triggered,
+   **Then** the analyst is prompted for a reason; after confirming,
+   `POST /api/occurrences/batch/reject` is called with `occurrenceIds` and `reason`,
+   and each row updates to "Rejeitado".
+3. **Given** one or more rows are selected, **When** "Disable" is triggered,
+   **Then** `POST /api/occurrences/batch/disable` is called with all selected
+   `occurrenceIds` and each row updates to "Desabilitado".
+4. **Given** no rows are selected, **When** the batch action controls render,
+   **Then** the batch action buttons are disabled or hidden.
+5. **Given** the analyst clicks the header checkbox with no rows selected, **When**
+   it toggles, **Then** all visible rows become selected and the header checkbox
+   appears checked.
+6. **Given** all rows are selected and the analyst clicks the header checkbox, **When**
+   it toggles, **Then** all rows are deselected.
+5. **Given** a batch action partially fails (some IDs rejected by API), **When** the
+   response arrives, **Then** successfully processed rows update and failed rows
+   remain unchanged; a summary error toast is shown.
+
+---
+
 ### Edge Cases
 
 - What happens when the API returns 401 (token expired)? Show an auth error banner.
@@ -125,6 +229,13 @@ approved occurrences of the selected batch.
   prevent the table from rendering with fallback/hardcoded columns.
 - What happens when the schema returns zero dynamic fields? The table still shows the
   fixed "Conferência" and "Status" columns.
+- What happens when the audit endpoint is unreachable? Show an error state in the
+  diary panel; the rest of the screen still works.
+- What happens when a batch action is triggered on a very large selection? The UI
+  must remain responsive; a loading indicator is shown until the API responds.
+- What happens when the occurrence notes list is empty? Show an empty state (no crash).
+- What happens when the `movementType` field is absent in an occurrence? The cell
+  renders as blank, not as an error.
 
 ## Requirements
 
@@ -138,10 +249,13 @@ approved occurrences of the selected batch.
   rendering the table or any edit form. No column header or form field label may be
   hardcoded anywhere in the component tree.
 - **FR-004**: Table columns MUST be generated dynamically from the schema response
-  (FR-003), in the order specified by the schema. The "Conferência" and "Status"
-  columns MUST always appear as the **last two columns** (in that order), after all
-  dynamic schema-driven columns. They are NOT driven by the schema and are rendered
-  regardless of the schema content.
+  (FR-003), in the order specified by the schema. The `movementType` column MUST
+  always appear as the **first column**, before all dynamic schema-driven columns.
+  The "Conferência" and "Status" columns MUST always appear as the **last two columns**
+  (in that order), after all dynamic schema-driven columns. `movementType`,
+  "Conferência", and "Status" are NOT driven by the schema and are rendered regardless
+  of the schema content. The `movementType` values displayed are "New", "Edit", and
+  "Remove".
 - **FR-005**: Edit form fields (labels, order, and presence) in the detail drawer MUST
   be generated dynamically from the same schema response (FR-003). If a new field is
   added to the schema, it appears in the form automatically; if a field is removed from
@@ -161,19 +275,65 @@ approved occurrences of the selected batch.
 - **FR-012**: API calls MUST be organized in `src/api/` files, one per resource group.
 - **FR-013**: API types MUST mirror the backend contract with no `any`.
 - **FR-014**: The original `CadastralMoviment.tsx` MUST NOT be modified.
+- **FR-015**: The screen MUST display a batch audit diary panel at the top of the
+  screen. The panel MUST fetch data from `GET /api/batches/{id}/audit` whenever the
+  selected batch changes and display the `changedAt`, `changeType`, `actorId`, and
+  `description` fields of each audit entry. The panel MUST be collapsible: it renders
+  expanded by default; the analyst can collapse it to reclaim vertical space for the
+  occurrence table. Collapsed/expanded state does not need to persist across sessions.
+- **FR-016**: The occurrence detail drawer MUST include a "Histórico · auditoria e
+  diário" section positioned below the schema-driven form fields, separated by a
+  visible divider. Notes are embedded in the occurrence detail response from
+  `GET /api/occurrences/{id}` as a `notes` array. Each note entry contains `id`,
+  `text`, `authorId`, and `createdAt`. The section MUST render them in chronological
+  order on drawer open — no separate listing call is required.
+- **FR-017**: The notes section MUST allow the analyst to type a new annotation and
+  submit it via `POST /api/occurrences/{id}/notes` with body `{ "text": "..." }`.
+  On success, the notes list MUST refresh to include the new entry. Submission of an
+  empty note MUST be blocked client-side.
+- **FR-018**: The screen MUST support batch approve: when one or more occurrences are
+  selected via table checkboxes and the analyst triggers approve, the UI MUST call
+  `POST /api/occurrences/batch/approve` with `{ "occurrenceIds": [...] }` — including
+  occurrences with blocking errors — and update each successfully approved row to
+  "Aprovado". The API is the authority on which IDs are valid; the UI does not
+  pre-filter by blocking-error state before the batch call. Partially failed responses
+  MUST result in a summary toast indicating how many succeeded and how many failed.
+- **FR-019**: The screen MUST support batch reject: when one or more occurrences are
+  selected via table checkboxes and the analyst triggers reject, the UI MUST prompt
+  for a reason, then call `POST /api/occurrences/batch/reject` with
+  `{ "occurrenceIds": [...], "reason": "..." }` and update each affected row to
+  "Rejeitado" on success.
+- **FR-020**: The screen MUST support batch disable: when one or more occurrences are
+  selected via table checkboxes and the analyst triggers disable, the UI MUST call
+  `POST /api/occurrences/batch/disable` with `{ "occurrenceIds": [...] }` and update
+  each affected row to "Desabilitado" on success.
+- **FR-021**: Batch action controls (approve, reject, disable) MUST be disabled or
+  hidden when no rows are selected.
+- **FR-022**: The table header MUST include a "select all" checkbox that selects or
+  deselects all currently visible occurrence rows in the active batch. When all rows
+  are selected the header checkbox appears checked; when none are selected it appears
+  unchecked; when some are selected it appears in an indeterminate state.
 
 ### Key Entities
 
 - **ApiBatch**: Top-level grouping returned by `GET /api/batches`.
-- **ApiOccurrence**: List-level occurrence item with `hasBlockingErrors` and
-  `validationSummary`.
+- **ApiOccurrence**: List-level occurrence item with `hasBlockingErrors`,
+  `validationSummary`, and `movementType` ("New" | "Edit" | "Remove").
 - **ApiOccurrenceDetail**: Full detail occurrence with all fields and validations.
 - **ApiSchema**: Field definitions returned by `GET /api/schemas/cadastral-movement`.
   Each field definition supplies at minimum: a key, a display label, a display
   order, and a data type. This is the authoritative source for column headers and form
   field rendering.
-- **FixedColumn**: A UI concept — the "Conferência" and "Status" columns that are always
-  rendered independently of the `ApiSchema` response.
+- **FixedColumn**: A UI concept — the `movementType` column (always first), and the
+  "Conferência" and "Status" columns (always last), all rendered independently of the
+  `ApiSchema` response.
+- **ApiBatchAuditEntry**: A single entry from `GET /api/batches/{id}/audit` with
+  `changedAt`, `changeType`, `actorId`, and `description`.
+- **ApiOccurrenceNote**: A note embedded in `ApiOccurrenceDetail` under the `notes`
+  array. Fields: `id` (string), `text` (string), `authorId` (string), `createdAt`
+  (datetime). New notes are submitted via `POST /api/occurrences/{id}/notes` with
+  `{ "text": "..." }`; after success, the drawer re-fetches the occurrence detail to
+  refresh the notes list.
 
 ## Success Criteria
 
@@ -195,7 +355,18 @@ approved occurrences of the selected batch.
 - **SC-006**: Approve/reject/disable actions round-trip to the API and update the row
   status without a full page refresh.
 - **SC-007**: Zero hardcoded field labels in `CadastralMovimentDefaut.tsx` or its
-  sub-components (excluding the two fixed column labels "Conferência" and "Status").
+  sub-components (excluding the three fixed column labels "movementType",
+  "Conferência", and "Status").
+- **SC-008**: The batch audit diary panel renders at the top of the screen whenever a
+  batch is selected and displays all four audit fields (`changedAt`, `changeType`,
+  `actorId`, `description`) for each entry — verified by comparing rendered entries
+  to the `GET /api/batches/{id}/audit` response.
+- **SC-009**: The notes section in the occurrence detail drawer lists all existing
+  notes on open, and after submitting a new note the list updates to include it —
+  verified end-to-end without a drawer close/reopen.
+- **SC-010**: Selecting N rows and triggering a batch action results in exactly one
+  API call with all N `occurrenceIds`, and all N rows update in the table — verified
+  by selecting multiple rows and confirming a single network request is made.
 
 ## Assumptions
 
@@ -212,6 +383,18 @@ approved occurrences of the selected batch.
   occurrence; "Status" maps to the approval/rejection/disabled state.
 - Per the constitution, no application state is persisted in `localStorage` or
   `sessionStorage`.
+- The batch audit diary endpoint uses the currently selected batch ID:
+  `GET /api/batches/{id}/audit`. The diary panel re-fetches when the batch selection
+  changes.
+- Notes are embedded in the occurrence detail response (`GET /api/occurrences/{id}`)
+  as a `notes` array with fields `id`, `text`, `authorId`, and `createdAt`. There is
+  no separate listing endpoint. After a successful `POST /api/occurrences/{id}/notes`,
+  the drawer re-fetches the occurrence detail to refresh the notes list.
+- The `movementType` field is present on the occurrence list items returned by
+  `GET /api/occurrences/` and requires no separate fetch.
+- Batch action endpoints (`/api/occurrences/batch/*`) accept an array of occurrence
+  IDs. A partial-success response (some IDs rejected) should update successful rows
+  and display a summary error; the spec treats this as a best-effort scenario.
 
 ## Clarifications
 
@@ -222,3 +405,15 @@ approved occurrences of the selected batch.
 - Q: Should the schema be re-fetched on each batch selection or cached? → A: Fetch once on screen mount; cache for the session; page reload to recover from schema changes
 - Q: Where should the fixed "Conferência" and "Status" columns appear in the table? → A: Last two columns (rightmost), after all dynamic schema-driven columns
 - Q: Should schema fields in the edit drawer have a read-only state? → A: No — all schema-driven fields are always editable
+
+### Session 2026-06-28
+
+- Q: Is there a `GET /api/occurrences/{id}/notes` listing endpoint, or are notes embedded in the occurrence detail? → A: Notes are embedded in `GET /api/occurrences/{id}` as a `notes` array with fields `id`, `text`, `authorId`, `createdAt`. No separate listing call. After POST, re-fetch the occurrence detail to refresh.
+- Q: Should the table include a header-level checkbox to select all visible occurrences at once? → A: Yes — header checkbox selects/deselects all visible rows; supports indeterminate state when partially selected.
+- Q: When batch approving a selection that includes occurrences with blocking errors, should the UI pre-filter or send all IDs to the API? → A: Send all selected IDs to the API; the API is the authority on validity; UI surfaces a partial-failure toast with succeed/fail counts.
+- Q: Should the batch audit diary panel at the top of the screen be collapsible? → A: Yes — expanded by default; analyst can collapse it; state does not persist across sessions.
+- Q: Where in the occurrence detail drawer should the notes section appear? → A: Below the schema-driven form fields, separated by a visible divider. No tabs.
+- Req: `movementType` field from `/api/occurrences/` must be shown as the first column. Values are "New", "Edit", "Remove".
+- Req: Batch audit diary must appear at the top of the screen consuming `GET /api/batches/{id}/audit` with fields `changedAt`, `changeType`, `actorId`, `description`.
+- Req: Occurrence detail drawer must include a notes section (Histórico · auditoria e diário) using `GET /api/occurrences/{id}/notes` for listing and `POST /api/occurrences/{id}/notes` (body `{ "text": "..." }`) for creation.
+- Req: Batch operations (approve / reject with reason / disable) must be added using table checkboxes and the endpoints `/api/occurrences/batch/approve`, `/api/occurrences/batch/reject`, `/api/occurrences/batch/disable`.

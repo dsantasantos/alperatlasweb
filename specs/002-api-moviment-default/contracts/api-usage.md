@@ -1,6 +1,6 @@
 # API Usage Contract: CadastralMovimentDefaut
 
-**Contract Version**: 2.0 | **Date**: 2026-06-27 | **Last Updated**: 2026-06-27
+**Contract Version**: 3.0 | **Date**: 2026-06-27 | **Last Updated**: 2026-06-28
 
 Documents how `CadastralMovimentDefaut.tsx` and `src/api/` interact with the
 backend. Source of truth: `api-atlas-endpoints.md`.
@@ -86,8 +86,9 @@ Authorization: Bearer <token>
 
 → 200: ApiOccurrenceDetail
        ├── fields[] → rendered using schema displayOrder and displayLabel
-       └── validations[] → grouped by dimension (Capture / Movement)
-→ Triggered when analyst clicks a row
+       ├── validations[] → grouped by dimension (Capture / Movement)
+       └── notes[] → embedded; rendered in "Histórico" section of drawer
+→ Triggered when analyst clicks a row, and after POST /notes to refresh
 ```
 
 ---
@@ -147,6 +148,88 @@ Authorization: Bearer <token>
 
 ---
 
+## Occurrence Note (src/api/occurrences.ts)
+
+```
+POST /api/occurrences/{occurrenceId}/notes
+Authorization: Bearer <token>
+Content-Type: application/json
+{ "text": "non-empty string" }
+
+→ 200/201: success
+→ On success: re-fetch GET /api/occurrences/{occurrenceId} to refresh notes list
+→ Empty text prevented client-side before call
+→ Network error → flash warn; note not added
+```
+
+---
+
+## Batch Audit Diary (src/api/batches.ts)
+
+```
+GET /api/batches/{batchId}/audit
+Authorization: Bearer <token>
+
+→ 200: ApiBatchAuditEntry[]
+       ├── changedAt → when the change happened
+       ├── changeType → type of change (e.g. "Created", "Dispatched")
+       ├── actorId → who performed the change
+       └── description → human-readable description
+→ Fetched on each batch selection change
+→ Rendered in the collapsible diary panel at the top of the screen
+→ Network error → render error state in diary panel only; rest of screen unaffected
+→ Empty array → render empty state (no error)
+```
+
+---
+
+## Batch Approve (src/api/occurrences.ts)
+
+```
+POST /api/occurrences/batch/approve
+Authorization: Bearer <token>
+Content-Type: application/json
+{ "occurrenceIds": ["id1", "id2", ...] }
+
+→ 200: partial or full success response
+→ Successful IDs → update row state to "Approved" in table
+→ Failed IDs → row unchanged; summary toast: "N aprovados, M falharam"
+→ API is the validity authority — UI does not pre-filter by hasBlockingErrors
+```
+
+---
+
+## Batch Reject (src/api/occurrences.ts)
+
+```
+POST /api/occurrences/batch/reject
+Authorization: Bearer <token>
+Content-Type: application/json
+{ "occurrenceIds": ["id1", ...], "reason": "non-empty string" }
+
+→ 200: partial or full success response
+→ Successful IDs → update row state to "Rejected" in table
+→ Failed IDs → row unchanged; summary toast
+→ reason is collected via modal before the API call; empty reason blocks submission
+```
+
+---
+
+## Batch Disable (src/api/occurrences.ts)
+
+```
+POST /api/occurrences/batch/disable
+Authorization: Bearer <token>
+Content-Type: application/json
+{ "occurrenceIds": ["id1", ...] }
+
+→ 200: partial or full success response
+→ Successful IDs → update row state to "Disabled" in table
+→ Failed IDs → row unchanged; summary toast
+```
+
+---
+
 ## Export XLSX (src/api/batches.ts)
 
 ```
@@ -164,13 +247,14 @@ Authorization: Bearer <token>
 ## Mount Sequence
 
 ```
-1. GET /api/schemas/cadastral-movement  → cache schema in state
-2. GET /api/batches                     → populate batch rail, auto-select first
-3. GET /api/batches/{firstId}           → load occurrences for selected batch
-4. GET /api/batches/{firstId}/summary   → populate summary bar
+1. GET /api/schemas/cadastral-movement  → cache schema in state           ┐ parallel
+2. GET /api/batches                     → populate batch rail, auto-select ┘
+3. GET /api/batches/{firstId}           → load occurrences for selected batch  ┐
+4. GET /api/batches/{firstId}/summary   → populate summary bar                 ├ parallel
+5. GET /api/batches/{firstId}/audit     → populate diary panel                 ┘
 ```
 
-Steps 1 and 2 can be parallelised. Steps 3 and 4 depend on step 2's selected batch id.
+Steps 1 and 2 are parallelised. Steps 3, 4, and 5 depend on step 2's selected batch id and run in parallel with each other. On each subsequent batch selection, steps 3, 4, and 5 re-run for the new batch id.
 
 ---
 

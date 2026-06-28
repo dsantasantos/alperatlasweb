@@ -1,6 +1,6 @@
 # Research: CadastralMovimentDefaut — API-Connected Screen
 
-**Branch**: `002-api-moviment-default` | **Date**: 2026-06-27 | **Last Updated**: 2026-06-27
+**Branch**: `002-api-moviment-default` | **Date**: 2026-06-27 | **Last Updated**: 2026-06-28
 
 ---
 
@@ -22,11 +22,16 @@ authenticated endpoints use `Authorization: Bearer <token>` obtained via
 | `GET /api/batches/{id}` | Load occurrences per batch selection |
 | `GET /api/batches/{id}/summary` | Drive the progress/summary bar |
 | `GET /api/batches/{id}/export` | XLSX download of approved occurrences |
-| `GET /api/occurrences/{id}` | Full detail when analyst opens a row |
+| `GET /api/occurrences/{id}` | Full detail when analyst opens a row; includes embedded `notes[]` |
 | `PATCH /api/occurrences/{id}/fields/{key}` | Field editing with auto-revalidation |
-| `POST /api/occurrences/{id}/approve` | Single and bulk approve |
-| `POST /api/occurrences/{id}/reject` | Single and bulk reject (reason required) |
-| `POST /api/occurrences/{id}/disable` | Logical deletion from review flow |
+| `POST /api/occurrences/{id}/approve` | Single-occurrence approve |
+| `POST /api/occurrences/{id}/reject` | Single-occurrence reject (reason required) |
+| `POST /api/occurrences/{id}/disable` | Single-occurrence logical deletion |
+| `POST /api/occurrences/{id}/notes` | Add annotation to occurrence (`{ "text": "..." }`) |
+| `GET /api/batches/{id}/audit` | Batch change history (changedAt, changeType, actorId, description) |
+| `POST /api/occurrences/batch/approve` | Batch approve (`{ "occurrenceIds": [...] }`) |
+| `POST /api/occurrences/batch/reject` | Batch reject (`{ "occurrenceIds": [...], "reason": "..." }`) |
+| `POST /api/occurrences/batch/disable` | Batch disable (`{ "occurrenceIds": [...] }`) |
 
 **Endpoints NOT used by the new screen** (and why):
 
@@ -59,9 +64,10 @@ re-fetch occurs on batch selection. A page reload recovers from mid-session sche
 changes (accepted tradeoff — schema changes are rare operational events).
 
 **Column layout rule**:
-1. Dynamic columns from the schema, in ascending `displayOrder`
-2. Fixed "Conferência" column (last-but-one)
-3. Fixed "Status" column (last)
+1. Fixed `movementType` column (first) — values "New", "Edit", "Remove"; sourced from `ApiOccurrenceListItem.movementType`
+2. Dynamic columns from the schema, in ascending `displayOrder`
+3. Fixed "Conferência" column (last-but-one)
+4. Fixed "Status" column (last)
 
 Fixed columns are NOT in the schema; they render unconditionally.
 
@@ -119,7 +125,7 @@ endpoints and are **intentionally omitted** from `CadastralMovimentDefaut.tsx`:
 
 | Omitted feature | Reason |
 |-----------------|--------|
-| Diário do lote (DiaryModal) | No diary/journal endpoint in the API |
+| Diário do lote (DiaryModal) — per-occurrence inline diary | **Now implemented**: audit diary via `GET /api/batches/{id}/audit` at top of screen; occurrence notes via `POST /api/occurrences/{id}/notes` in drawer |
 | Simular retorno (confirmar/recusar da operadora) | No return-simulation endpoint |
 | Gerar movimentação compensatória | No compensate endpoint |
 | Efeito previsto no Alper Core (coreEffect/coreApplied) | Not in any API response |

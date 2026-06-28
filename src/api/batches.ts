@@ -3,6 +3,7 @@ import type {
   ApiBatchListResponse,
   ApiBatchDetail,
   ApiBatchSummary,
+  ApiBatchAuditEntry,
   ApiDispatchResult,
 } from './types';
 
@@ -42,4 +43,7 @@ export const batchesApi = {
 
   dispatch: (batchId: string) =>
     httpClient.post<ApiDispatchResult>(`/api/batches/${batchId}/dispatch`),
+
+  audit: (batchId: string) =>
+    httpClient.get<ApiBatchAuditEntry[]>(`/api/batches/${batchId}/audit`),
 };

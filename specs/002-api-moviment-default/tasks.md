@@ -1,209 +1,143 @@
----
-description: "Task list for CadastralMovimentDefaut — API-Connected Screen (v2 — dynamic schema)"
+﻿---
+description: "Task list for CadastralMovimentDefaut â€” API-Connected Screen (v3 â€” enhancements 2026-06-28)"
 ---
 
-# Tasks: CadastralMovimentDefaut — API-Connected Screen
+# Tasks: CadastralMovimentDefaut â€” API-Connected Screen (v3)
 
 **Input**: Design documents from `specs/002-api-moviment-default/`
 
-**Prerequisites**: plan.md ✅ · spec.md ✅ · research.md ✅ · data-model.md ✅ · contracts/ ✅
+**Prerequisites**: plan.md âœ… Â· spec.md âœ… Â· research.md âœ… Â· data-model.md âœ… Â· contracts/ âœ…
 
-**Status note**: The API layer and initial screen were built in a prior iteration. This
-task list reflects the v2 update: schema now comes from `GET /api/schemas/cadastral-movement`
-(not the batch detail), columns are fully dynamic with fixed "Conferência" and "Status"
-last, and edit form inputs are type-driven by `dataType`. Tasks already completed and
-still valid are marked `[x]`. Tasks that need updating or are new are marked `[ ]`.
+**Tech stack**: TypeScript 6.0 strict Â· React 19 Â· Vite 7 Â· Tailwind CSS 3.4
 
-**Tests**: Required by constitution Principle V for schema-driven rendering and
-validation-state behavior. Included in US1 and US2 phases.
+**Scope of this version**: Four enhancements on top of the existing implementation â€”
+(1) `movementType` as first table column, (2) collapsible batch audit diary panel,
+(3) occurrence notes section in drawer, (4) batch approve / reject / disable via checkboxes.
 
 ## Format: `[ID] [P?] [Story?] Description`
 
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (US1–US4)
+- **[P]**: Parallelizable â€” different files, no incomplete dependencies
+- **[Story]**: Maps to user story from spec.md (US1â€“US7)
+- All tasks include exact file paths
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup â€” Type Contract Update (CONTRACT VERSION 3.0)
 
-**Purpose**: Test tooling and `src/api/` directory — all previously completed.
+**Purpose**: Extend `src/api/types.ts` with new types before any feature work begins.
+No user story implementation can start until T001 is complete.
 
-- [x] T001 Create `src/api/` directory
-- [x] T002 [P] Install Vitest + @testing-library/react in `package.json`
-- [x] T003 [P] Configure Vitest in `vite.config.js` (`test: { environment: 'jsdom', setupFiles: ['./tests/setup.ts'], globals: true }`)
-- [x] T004 [P] Create `tests/setup.ts` with `import '@testing-library/jest-dom'`
-- [x] T005 [P] Add `"test": "vitest"` and `"coverage": "vitest run --coverage"` to `package.json` scripts
-- [x] T006 [P] Create `tests/components/` and `tests/api/` directories
+**âš ï¸ CRITICAL**: T002â€“T007 depend on the types in T001.
 
----
+- [x] T001 Update `src/api/types.ts` to CONTRACT VERSION 3.0: (a) add `movementType: string` field to `ApiOccurrenceListItem`; (b) add `notes: ApiOccurrenceNote[]` field to `ApiOccurrenceDetail`; (c) add new interface `ApiOccurrenceNote { id: string; text: string; authorId: string; createdAt: string; }`; (d) add new interface `ApiBatchAuditEntry { changedAt: string; changeType: string; actorId: string; description: string; }`
 
-## Phase 2: Foundational (API Layer — v2 Updates)
-
-**Purpose**: Typed API layer shared by all user story phases. Some files need v2 updates
-to reflect the new schema source and type changes.
-
-**⚠️ CRITICAL**: Updated types and schema module must be complete before any story work.
-
-- [x] T007 Update `src/api/types.ts` for v2 contract:
-  - Rename `ApiBatchSchemaField` → `ApiSchemaField`; rename `typeHint` → `dataType`
-  - Remove or deprecate `ApiBatchSchema` (schema no longer embedded in batch detail)
-  - Update `ApiBatchDetail` to remove the `schema` property (no longer used for rendering)
-  - Ensure `ApiSchema` (top-level response) type is present: `{ operationTypeKey, displayName, validationRuleKeys, fields: ApiSchemaField[] }`
-  - All other types (`ApiOccurrenceListItem`, `ApiOccurrenceDetail`, etc.) remain unchanged
-- [x] T008 Implement in-memory token store + typed fetch wrapper in `src/api/client.ts`
-- [x] T009 [P] Implement `loginWithCredentials` in `src/api/auth.ts`
-- [x] T010 [P] Update `src/api/batches.ts`:
-  - Remove `schema` field from `ApiBatchDetail` return type (matches T007 update)
-  - All other batch functions (`list`, `summary`, `export`) remain unchanged
-- [x] T011 [P] Implement `occurrencesApi` (detail, editField, approve, reject, disable) in `src/api/occurrences.ts`
-- [x] T012 [P] Update `src/api/schemas.ts`:
-  - `schemasApi.get(operationTypeKey)` return type must be `ApiSchema` (not `ApiSchemaFull`)
-  - Confirm the URL used is `GET /api/schemas/{operationTypeKey}` (path param, not query param)
-- [x] T013 [P] Implement `triageApi.list` in `src/api/triage.ts`
-- [x] T014 Barrel re-export in `src/api/index.ts`
-- [x] T015 Validate TypeScript: run `npx tsc --noEmit` — fix any type errors in `src/api/` after T007/T010/T012
-
-**Checkpoint**: API layer compiles clean with v2 types; `ApiSchemaField` with `dataType`
-is the single schema type used across the codebase.
+**Checkpoint**: Types compile â€” run `npx tsc --noEmit` and confirm zero errors before proceeding.
 
 ---
 
-## Phase 3: User Story 1 — Batch Rail + Dynamic Occurrence Table (Priority: P1) 🎯 MVP
+## Phase 2: Foundational â€” API Layer Extensions
 
-**Goal**: Analyst opens the screen; schema is fetched from the dedicated endpoint on
-mount and cached; batch rail populates; occurrence table shows dynamic columns (from
-schema, in `displayOrder`) with "Conferência" and "Status" pinned as the last two columns.
+**Purpose**: Add all new API functions to `src/api/batches.ts` and `src/api/occurrences.ts`.
+These are pure additions â€” existing functions must not be modified.
 
-**Independent Test**: Navigate to screen → `GET /api/schemas/cadastral-movement` fires
-once → batch list loads → select a different batch → schema NOT re-fetched → table
-columns match `displayLabel` from schema → "Conferência" and "Status" are last two columns.
+**âš ï¸ CRITICAL**: All user story phases depend on these API functions.
 
-### Tests for User Story 1 (Principle V — Required) ⚠️
+- [x] T002 [P] Add `export async function getBatchAudit(batchId: string): Promise<ApiBatchAuditEntry[]>` to `src/api/batches.ts` â€” calls `GET /api/batches/${batchId}/audit` via `httpClient` and returns the response array
+- [x] T003 [P] Add `export async function postOccurrenceNote(occurrenceId: string, text: string): Promise<void>` to `src/api/occurrences.ts` â€” calls `POST /api/occurrences/${occurrenceId}/notes` with JSON body `{ text }` via `httpClient`
+- [x] T004 [P] Add `export async function batchApprove(occurrenceIds: string[]): Promise<unknown>` to `src/api/occurrences.ts` â€” calls `POST /api/occurrences/batch/approve` with JSON body `{ occurrenceIds }` via `httpClient`
+- [x] T005 [P] Add `export async function batchReject(occurrenceIds: string[], reason: string): Promise<unknown>` to `src/api/occurrences.ts` â€” calls `POST /api/occurrences/batch/reject` with JSON body `{ occurrenceIds, reason }` via `httpClient`
+- [x] T006 [P] Add `export async function batchDisable(occurrenceIds: string[]): Promise<unknown>` to `src/api/occurrences.ts` â€” calls `POST /api/occurrences/batch/disable` with JSON body `{ occurrenceIds }` via `httpClient`
+- [x] T007 Update `src/api/index.ts` to re-export the five new functions: `getBatchAudit`, `postOccurrenceNote`, `batchApprove`, `batchReject`, `batchDisable`
 
-> **Confirm tests fail before verifying against implementation.**
-
-- [x] T016 [P] [US1] Update test: `makeLabel()` builds correct `Record<string,string>`
-  from `ApiSchemaField[]` (was `ApiBatchSchemaField[]`) in `tests/api/helpers.test.ts`
-- [x] T017 [P] [US1] Update test: `<Row>` renders field values in schema `displayOrder`
-  from `ApiSchemaField[]` (not hardcoded strings) in `tests/components/Row.test.tsx`
-- [x] T018 [P] [US1] Update test: table `<th>` content matches `displayLabel` from
-  `ApiSchemaField[]` (not from batch detail schema) in `tests/components/CadastralMovimentDefaut.test.tsx`
-- [x] T018a [P] [US1] New test: "Conferência" and "Status" `<th>` elements always present
-  and always appear as the last two columns, regardless of schema content, in
-  `tests/components/CadastralMovimentDefaut.test.tsx`
-
-### Implementation for User Story 1
-
-- [x] T019 [US1] Update `CadastralMovimentDefaut.tsx` — v2 schema fetch strategy:
-  - On mount: call `schemasApi.get('cadastral-movement')` and store result in component
-    state (`const [schema, setSchema] = useState<ApiSchemaField[]>([])`)
-  - Parallelise schema fetch and batch list fetch (both fire on mount)
-  - Remove any reference to `batchDetail.schema` for column/label derivation
-  - Table columns: map `schema` (sorted by `displayOrder`) → dynamic `<th>` elements,
-    then append fixed "Conferência" `<th>` and "Status" `<th>` as last two
-  - Add schema-error state: if `schemasApi.get` fails, show error banner and skip table render
-  - On batch selection: do NOT re-fetch schema (use cached state value)
-- [x] T020 [US1] Register screen in `src/components/layout/AppShell.tsx` (already wired)
-- [x] T021 [US1] Validate TypeScript: run `npx tsc --noEmit` — fix type errors in screen
-  after v2 changes (especially `ApiSchemaField[]` vs old `ApiBatchSchemaField[]`)
-
-**Checkpoint**: Schema fetched once on mount, cached, never re-fetched on batch change.
-Table shows dynamic columns first, then "Conferência" and "Status" last.
+**Checkpoint**: `npx tsc --noEmit` passes â€” all new API functions are typed and exported.
 
 ---
 
-## Phase 4: User Story 2 — Dynamic Edit Drawer + Field Edit (Priority: P2)
+## Phase 3: US1 â€” movementType as First Table Column (Priority: P1) ðŸŽ¯ MVP
 
-**Goal**: Analyst opens the drawer; all form fields are dynamically rendered from the
-cached schema (`ApiSchemaField[]`), in `displayOrder`, with correct input types
-(`resolveInputType(field.dataType)`). All fields are editable. Edit saves via PATCH and
-updates validations in the drawer without a full reload.
+**Goal**: Every row in the occurrence table shows its movement type ("New", "Edit", or "Remove") as the first data column â€” before all schema-driven columns.
 
-**Independent Test**: Click a row → drawer opens → form fields match schema field list
-in `displayOrder` → date fields show date picker → text fields show text input → edit
-a field → PATCH fires → validations update without page reload.
+**Independent Test**: Load the screen â†’ confirm the first column header is "Tipo" â†’ confirm each row cell under it shows "New", "Edit", or "Remove" from `ApiOccurrenceListItem.movementType` â†’ confirm schema-driven columns still follow, "ConferÃªncia" and "Status" are still last.
 
-### Tests for User Story 2 (Principle V — Required) ⚠️
+### Implementation for US1
 
-- [x] T022 [P] [US2] Test: blocking error disables Approve button in `tests/components/Drawer.test.tsx`
-- [x] T023 [P] [US2] Test: `<ValidationGroup>` renders "Sem apontamentos" when `items` is empty in `tests/components/ValidationGroup.test.tsx`
-- [x] T024 [P] [US2] Update test: field labels use `displayLabel` from `ApiSchemaField[]`
-  prop (not `ApiBatchSchemaField[]`) in `tests/components/Drawer.test.tsx`
-- [x] T025 [P] [US2] Test: `mapSev('Error')` returns `'erro'`, `mapSev('Warning')` returns `'aviso'` in `tests/api/helpers.test.ts`
-- [x] T025a [P] [US2] New test: `resolveInputType('date')` returns `'date'`,
-  `resolveInputType('datetime')` returns `'datetime-local'`, `resolveInputType('text')`
-  and `resolveInputType('cpf')` return `'text'` in `tests/api/helpers.test.ts`
-- [x] T025b [P] [US2] New test: `<Drawer>` renders `<input type="date">` for a schema
-  field with `dataType: 'date'` and `<input type="text">` for all other dataTypes in
-  `tests/components/Drawer.test.tsx`
+- [x] T008 [US1] In `src/pages/moviment/CadastralMovimentDefaut.tsx`, update the `OccurrenceTable` column header row: add a fixed `<th>` with text "Tipo" as the **first** `<th>` element, before the `schema.fields` mapping loop that generates dynamic headers
+- [x] T009 [US1] In `src/pages/moviment/CadastralMovimentDefaut.tsx`, update the `Row` cell rendering: add `<td>{r.movementType ?? ''}</td>` as the **first** `<td>` data cell, before the schema-driven `fields.map(...)` cells â€” position must match the "Tipo" header added in T008
 
-### Implementation for User Story 2
-
-- [x] T026 [US2] Update `Drawer` component in `src/pages/moviment/CadastralMovimentDefaut.tsx`:
-  - Change `schema` prop type from `ApiBatchSchemaField[]` to `ApiSchemaField[]`
-  - Add `resolveInputType(dataType: string): 'text' | 'date' | 'datetime-local'` helper
-    (`'date'` → `'date'`, `'datetime'` → `'datetime-local'`, any other → `'text'`)
-  - Render edit inputs using `<input type={resolveInputType(field.dataType)} ...>`
-  - All schema-driven fields render as editable inputs (no read-only logic)
-  - Field order uses `displayOrder` from `ApiSchemaField[]` (unchanged from v1)
-- [x] T027 [US2] Implement `ValidationGroup` for Capture and Movement dimensions in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-- [x] T028 [US2] Implement `handleOccurrenceUpdate` to reflect PATCH response in table inline in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-
-**Checkpoint**: Drawer form is fully dynamic from cached schema; date fields show date
-pickers; PATCH round-trips update the drawer without reload.
+**Checkpoint**: US1 fully functional â€” movementType is first column, schema columns follow, fixed columns last. Smoke-check steps 5â€“7 from `specs/002-api-moviment-default/quickstart.md` pass.
 
 ---
 
-## Phase 5: User Story 3 — Approve, Reject, Disable (Priority: P2)
+## Phase 4: US5 â€” Batch Audit Diary Panel (Priority: P2)
 
-**Goal**: Analyst approves (single or bulk), rejects with a required reason, or disables
-occurrences. Status updates reflect in the table without a full reload.
+**Goal**: A collapsible panel at the top of the screen shows the complete change history of the selected batch, fetched from `GET /api/batches/{id}/audit`.
 
-**Independent Test**: Single-approve a non-blocked occurrence → row status updates to
-"Aprovado" from API response.
+**Independent Test**: Select a batch â†’ confirm `GET /api/batches/{id}/audit` fires â†’ confirm the panel renders `changedAt`, `changeType`, `actorId`, `description` for each entry â†’ click toggle â†’ panel collapses â†’ click toggle again â†’ panel expands â†’ switch batch â†’ panel re-fetches with new batch id.
 
-### Tests for User Story 3
+### Implementation for US5
 
-- [ ] T029 [P] [US3] Approve button disabled when `hasBlockingErrors === true` — covered by T022; no duplicate test needed
-- [x] T030 [P] [US3] Test: `<RejectModal>` confirm button disabled when `reason` is empty in `tests/components/RejectModal.test.tsx`
+- [x] T010 [US5] In `src/pages/moviment/CadastralMovimentDefaut.tsx`, create `AuditDiaryPanel` sub-component with props `{ entries: ApiBatchAuditEntry[]; loading: boolean; error: boolean; collapsed: boolean; onToggle: () => void }` â€” renders: a header row with title "DiÃ¡rio do lote" and a collapse/expand toggle button; when `collapsed` is true renders nothing below the header; when `loading` shows a loading indicator; when `error` shows "Erro ao carregar diÃ¡rio"; when `entries.length === 0` shows "Sem registros"; otherwise renders each entry as a row showing `changedAt` (formatted), `changeType`, `actorId`, `description`
+- [x] T011 [US5] In `CadastralMovimentDefaut.tsx`, add four state variables: `const [auditEntries, setAuditEntries] = useState<ApiBatchAuditEntry[]>([])`, `const [auditLoading, setAuditLoading] = useState(false)`, `const [auditError, setAuditError] = useState(false)`, `const [diaryCollapsed, setDiaryCollapsed] = useState(false)`
+- [x] T012 [US5] In `CadastralMovimentDefaut.tsx`, extend the batch-selection handler (the function triggered when a batch is selected from the rail): fire `getBatchAudit(batchId)` in parallel alongside the existing `getBatchDetail` and `getBatchSummary` calls; on resolve set `setAuditEntries(data)` and `setAuditLoading(false)`; on reject set `setAuditError(true)` and `setAuditLoading(false)`; set `setAuditLoading(true)` and `setAuditError(false)` before the call
+- [x] T013 [US5] In `CadastralMovimentDefaut.tsx`, mount `<AuditDiaryPanel>` in the JSX above the `SummaryBar` / occurrence table area, passing `entries={auditEntries}`, `loading={auditLoading}`, `error={auditError}`, `collapsed={diaryCollapsed}`, `onToggle={() => setDiaryCollapsed(c => !c)}`
 
-### Implementation for User Story 3
-
-- [x] T031 [US3] Implement single approve/reject/disable in `Drawer` in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-- [x] T032 [US3] Implement bulk approve/reject with batchbar in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-- [x] T033 [US3] Implement `RejectModal` and `BulkRejectModal` in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-
-**Checkpoint**: All three decision affordances work; status updates in table reflect API responses.
+**Checkpoint**: US5 fully functional â€” smoke-check steps 8â€“12 from `specs/002-api-moviment-default/quickstart.md` pass.
 
 ---
 
-## Phase 6: User Story 4 — Export XLSX (Priority: P3)
+## Phase 5: US6 â€” Occurrence Notes in Drawer (Priority: P2)
 
-**Goal**: Analyst clicks "Exportar XLSX" and the browser downloads the XLSX file from
-`GET /api/batches/{id}/export`. If no approved occurrences, shows a warning.
+**Goal**: The occurrence detail drawer shows a notes section (HistÃ³rico Â· auditoria e diÃ¡rio) below the schema-driven form fields. Analysts can read embedded notes and add new ones.
 
-**Independent Test**: With at least one approved occurrence → click Export → XLSX file
-downloads with the correct filename.
+**Independent Test**: Open a row drawer â†’ confirm notes from `detail.notes` appear chronologically â†’ type a note and click submit â†’ confirm `POST /api/occurrences/{id}/notes` fires â†’ confirm notes list refreshes to include the new note without closing the drawer â†’ confirm submit is disabled when text field is empty.
 
-### Implementation for User Story 4
+### Implementation for US6
 
-- [x] T034 [US4] Implement `doExport()` — calls `batchesApi.export(batchId)`, creates object URL, triggers `<a download>` in `src/pages/moviment/CadastralMovimentDefaut.tsx`
-- [x] T035 [US4] Handle 422 (no approved occurrences) and other API errors with `flash('warn', ...)` in `doExport()`
+- [x] T014 [US6] In `src/pages/moviment/CadastralMovimentDefaut.tsx`, create `NotesSection` sub-component with props `{ occurrenceId: string; notes: ApiOccurrenceNote[]; onNoteAdded: (updated: ApiOccurrenceDetail) => void; flash: (k: 'ok' | 'warn' | 'info', m: string) => void }` â€” renders: section heading "HistÃ³rico Â· auditoria e diÃ¡rio"; list of notes sorted chronologically, each showing `createdAt` (formatted), `authorId`, and `text`; empty state "Sem anotaÃ§Ãµes" when `notes.length === 0`; a `<textarea>` bound to local `noteText` state; a "Adicionar anotaÃ§Ã£o" submit button disabled when `noteText.trim() === ''`; on submit: call `postOccurrenceNote(occurrenceId, noteText.trim())`, then call `getOccurrenceDetail(occurrenceId)` and pass result to `onNoteAdded`, then clear `noteText`; on any error call `flash('warn', 'Erro ao salvar anotaÃ§Ã£o')`
+- [x] T015 [US6] In `CadastralMovimentDefaut.tsx`, update the `Drawer` component layout: after the last schema-driven form input (end of `schema.fields.map(...)` block), add `<hr className="my-4 border-gray-200" />` followed by `<NotesSection occurrenceId={detail.occurrenceId} notes={detail.notes ?? []} onNoteAdded={onUpdate} flash={flash} />`
 
-**Checkpoint**: Export downloads XLSX; 422 shows a user-friendly warning.
+**Checkpoint**: US6 fully functional â€” smoke-check steps 16â€“18 from `specs/002-api-moviment-default/quickstart.md` pass.
 
 ---
 
-## Phase N: Polish & Cross-Cutting Concerns
+## Phase 6: US7 â€” Batch Approve / Reject / Disable (Priority: P2)
 
-**Purpose**: Auth integration, design tokens, lint, and final smoke-check.
+**Goal**: Analysts can select multiple occurrences via checkboxes (including a select-all header checkbox) and perform batch approve, reject (with reason), or disable in a single API call.
 
-- [ ] T036 [P] Wire real auth token: call `loginWithCredentials(clientId, secret)` from `src/api/auth.ts` in `src/pages/Login.tsx`, then `setAuthToken(token)` before routing to the new screen
-- [x] T037 [P] Align design token hex values in `tailwind.config.js` and `src/styles/app.css` to constitution values (`--green: #06805B`, `--navy: #143D6B`, `--teal: #2C7A93`)
-- [x] T038 [P] Run full TypeScript build `npx tsc --noEmit` across all new and updated files — resolve any remaining type errors from v2 changes
-- [x] T039 [P] Run `npm run lint` — fix any ESLint violations (especially `@typescript-eslint/no-explicit-any`)
-- [ ] T040 Run smoke-check from `quickstart.md` — verify all 13 steps pass against a running API instance (step count updated from 8 to 13 to cover schema caching, fixed columns, and date picker validation)
-- [x] T041 Add `VITE_API_BASE_URL` to `.env.example` or comment in `quickstart.md` about required env vars
+**Independent Test**: Select 2â€“3 rows â†’ confirm batch action buttons are enabled â†’ click header checkbox â†’ confirm all rows selected â†’ click header checkbox again â†’ confirm all deselected â†’ select 2 rows â†’ batch approve â†’ confirm single `POST /api/occurrences/batch/approve` fires with both IDs â†’ both rows update â†’ with 0 rows selected confirm buttons are disabled.
+
+### Implementation for US7
+
+- [x] T016 [US7] In `CadastralMovimentDefaut.tsx`, update `OccurrenceTable`: add a `<th>` as the first header column containing an `<input type="checkbox">` that uses a `ref` callback to set `.indeterminate = true` when `0 < checked.size < occurrences.length`, is `checked` when `checked.size === occurrences.length && occurrences.length > 0`, and calls `onCheckAll` on `onChange`
+- [x] T017 [US7] In `CadastralMovimentDefaut.tsx`, add a batch action toolbar rendered above or below `OccurrenceTable` â€” three buttons: "Aprovar selecionados" (calls `onBatchApprove([...checked])`), "Rejeitar selecionados" (calls `onBatchReject`), "Desabilitar selecionados" (calls `onBatchDisable([...checked])`); all three buttons have `disabled={checked.size === 0}`; style consistently with existing action buttons in the screen
+- [x] T018 [US7] In `CadastralMovimentDefaut.tsx`, create `BulkRejectModal` sub-component with props `{ count: number; onConfirm: (reason: string) => void; onClose: () => void }` â€” renders a modal dialog (reuse existing `Modal` from `src/components/shared/UI.tsx`) with heading "Rejeitar {count} ocorrÃªncia(s)?", a `<textarea>` bound to local `reason` state, Confirm button disabled when `reason.trim() === ''`, and Cancel button that calls `onClose`
+- [x] T019 [US7] In `CadastralMovimentDefaut.tsx`, add three handler functions: `handleBatchApprove(ids: string[])` â€” calls `batchApprove(ids)`, on success updates each matched row's `state` to `'Approved'` in the occurrences list state, calls `flash('ok', `${ids.length} aprovadas`)`, clears `setChecked(new Set())`; `handleBatchReject(ids: string[], reason: string)` â€” calls `batchReject(ids, reason)`, updates matched rows' `state` to `'Rejected'`, flashes success, clears selection; `handleBatchDisable(ids: string[])` â€” calls `batchDisable(ids)`, updates matched rows' `state` to `'Disabled'`, flashes success, clears selection; all three show `flash('warn', 'Erro na operaÃ§Ã£o em lote')` on catch
+- [x] T020 [US7] In `CadastralMovimentDefaut.tsx`, add `const [bulkRejectOpen, setBulkRejectOpen] = useState(false)` state; pass `onBatchApprove={handleBatchApprove}`, `onBatchReject={() => setBulkRejectOpen(true)}`, `onBatchDisable={handleBatchDisable}` as props to `OccurrenceTable`; render `{bulkRejectOpen && <BulkRejectModal count={checked.size} onConfirm={(r) => { handleBatchReject([...checked], r); setBulkRejectOpen(false); }} onClose={() => setBulkRejectOpen(false)} />}` in the screen JSX
+
+**Checkpoint**: US7 fully functional â€” smoke-check steps 23â€“29 from `specs/002-api-moviment-default/quickstart.md` pass.
+
+---
+
+## Phase 7: US2, US3, US4 â€” Existing Implementation (Checkpoint)
+
+These user stories are already implemented from the previous iteration. T015 (US6) extends the Drawer for US2 with the notes section. Verify they remain functional after the changes above.
+
+**Independent Tests**:
+- **US2** (drawer): Smoke-check steps 13â€“15, 19 from quickstart.md
+- **US3** (single approve/reject/disable): Smoke-check steps 20â€“22 from quickstart.md
+- **US4** (export): Smoke-check step 22 from quickstart.md
+
+No new implementation tasks required for US2, US3, US4.
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final validation, type-safety audit, and smoke-check pass.
+
+- [x] T021 Run `npx tsc --noEmit` from repository root and fix all TypeScript errors in `src/api/types.ts`, `src/api/batches.ts`, `src/api/occurrences.ts`, `src/pages/moviment/CadastralMovimentDefaut.tsx`
+- [x] T022 [P] Verify SC-007 compliance: grep `src/pages/moviment/CadastralMovimentDefaut.tsx` for hardcoded field labels; allowed only: "Tipo", "ConferÃªncia", "Status", "DiÃ¡rio do lote", "HistÃ³rico Â· auditoria e diÃ¡rio", "Adicionar anotaÃ§Ã£o", "Aprovar selecionados", "Rejeitar selecionados", "Desabilitar selecionados"; fix any other hardcoded labels found
+- [x] T023 [P] Run smoke-check steps 1â€“29 from `specs/002-api-moviment-default/quickstart.md` against a running dev server (`npm run dev`) and fix any failures in `src/pages/moviment/CadastralMovimentDefaut.tsx`
 
 ---
 
@@ -211,90 +145,101 @@ downloads with the correct filename.
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: Complete — no dependencies
-- **Foundational (Phase 2)**: T007 must complete first (type changes cascade to T010, T012, T015)
-- **US1 (Phase 3)**: Depends on Phase 2 complete — T019 depends on T007+T012
-- **US2 (Phase 4)**: Depends on Phase 2 complete — T026 depends on T007
-- **US3 (Phase 5)**: Depends on Phase 2 — independent of US1/US2 implementation
-- **US4 (Phase 6)**: Depends on Phase 2 — independent
-- **Polish (Phase N)**: Depends on all stories being complete
+```
+Phase 1 (T001) â”€â”€â–º Phase 2 (T002â€“T007) â”€â”€â–º Phase 3 (T008â€“T009) â”€â”€â–º Phase 8 (T021â€“T023)
+                                        â”€â”€â–º Phase 4 (T010â€“T013) â”€â”€â–º
+                                        â”€â”€â–º Phase 5 (T014â€“T015) â”€â”€â–º
+                                        â”€â”€â–º Phase 6 (T016â€“T020) â”€â”€â–º
+```
+
+- **Phase 1** (T001): No dependencies â€” start immediately
+- **Phase 2** (T002â€“T007): Depends on T001 (needs new types) â€” T002â€“T006 are parallel
+- **Phases 3â€“6**: All depend on Phase 2 completion; can proceed in parallel with each other
+- **Phase 7**: Checkpoint only â€” no new tasks
+- **Phase 8** (T021â€“T023): Depends on all phases; T022 and T023 are parallel
 
 ### User Story Dependencies
 
-- **US1 (P1)**: Depends on T007, T012 ✅
-- **US2 (P2)**: Depends on T007 ✅
-- **US3 (P2)**: No new dependencies — existing implementation unchanged ✅
-- **US4 (P3)**: No new dependencies — existing implementation unchanged ✅
+| Story | Depends on | Can start after |
+|-------|-----------|-----------------|
+| US1 (T008â€“T009) | Phase 2 | T007 |
+| US5 (T010â€“T013) | Phase 2, `getBatchAudit` | T002, T007 |
+| US6 (T014â€“T015) | Phase 2, `postOccurrenceNote` | T003, T007 |
+| US7 (T016â€“T020) | Phase 2, batch functions | T004â€“T007 |
 
-### Within Each User Story
+### Within Each Phase
 
-- T007 (types) must be done before T010, T012, T015, T019, T026
-- Tests (T016–T018a, T024–T025b) should fail against the old implementation; pass after updates
-- TypeScript validation (T015, T021, T038) must pass before each story is considered done
-
-### Parallel Opportunities
-
-- T008, T009, T011, T013 (foundational, no v2 changes) can run in parallel with T007
-- T010, T012 can run in parallel once T007 is done
-- T016, T017, T018, T018a (US1 tests) can all run in parallel
-- T022, T023, T024, T025, T025a, T025b (US2 tests) can all run in parallel
-- T036, T037, T038, T039 (Polish) can all run in parallel
+- Models/types before API functions
+- API functions before component implementation
+- Sub-components before parent integration
+- State before handler before mount
 
 ---
 
-## Parallel Example: Phase 2 v2 Updates
+## Parallel Opportunities
 
-```bash
-# Run in parallel after T007 completes:
-Task T010: Update src/api/batches.ts (remove schema from ApiBatchDetail)
-Task T012: Update src/api/schemas.ts (ApiSchema return type, path param URL)
-
-# Then T015 once T010 and T012 are done:
-Task T015: npx tsc --noEmit across src/api/
 ```
+# Phase 2 â€” all can run simultaneously (different functions, same files â€” coordinate):
+T002  getBatchAudit       â†’ src/api/batches.ts
+T003  postOccurrenceNote  â†’ src/api/occurrences.ts
+T004  batchApprove        â†’ src/api/occurrences.ts
+T005  batchReject         â†’ src/api/occurrences.ts
+T006  batchDisable        â†’ src/api/occurrences.ts
+# Note: T003â€“T006 are in the same file â€” a single developer should do them sequentially
 
-## Parallel Example: User Story 1 Tests
+# Phase 3 â€” can run simultaneously (same file, different locations â€” coordinate):
+T008  OccurrenceTable <th>
+T009  Row <td>
 
-```bash
-# All US1 tests can run in parallel:
-Task T016: makeLabel() test with ApiSchemaField[] in tests/api/helpers.test.ts
-Task T017: Row schema rendering test in tests/components/Row.test.tsx
-Task T018: Table th label test in tests/components/CadastralMovimentDefaut.test.tsx
-Task T018a: Fixed column presence test in tests/components/CadastralMovimentDefaut.test.tsx
+# Phases 3â€“6 â€” can proceed in parallel across stories (same file â€” coordinate):
+Phase 3 (US1)  â†’  T008, T009
+Phase 4 (US5)  â†’  T010, T011, T012, T013
+Phase 5 (US6)  â†’  T014, T015
+Phase 6 (US7)  â†’  T016, T017, T018, T019, T020
+
+# Phase 8:
+T022  TypeScript audit
+T023  Smoke-check run
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP Scope (US1 v2 Update — Minimum Viable Change)
+### MVP First (US1 only â€” movementType column)
 
-1. T007 — Update `types.ts` (type rename + dataType)
-2. T012 — Update `schemas.ts` (return type + URL)
-3. T015 — TypeScript validation for API layer
-4. T019 — Update screen (schema fetch on mount, column layout)
-5. T021 — TypeScript validation for screen
-6. **STOP and VALIDATE**: Open screen → confirm schema fires once on mount → confirm
-   columns match schema → confirm "Conferência" and "Status" are last two
+1. T001 â€” update types
+2. T002â€“T007 â€” extend API layer
+3. T008â€“T009 â€” add movementType column
+4. **STOP**: Run smoke-check steps 5â€“7 from quickstart.md
+5. Proceed to US5, US6, US7
 
-### Full v2 Incremental Delivery
+### Recommended Delivery Order
 
-1. Phase 2 updates (T007 → T010/T012 → T015) → Foundation v2 ready
-2. US1 update (T016–T018a tests → T019 screen → T021 TS) → Demo dynamic columns
-3. US2 update (T024–T025b tests → T026 drawer) → Demo date pickers + dynamic form
-4. US3/US4 already complete — no changes needed
-5. Polish (T036 auth → T038 TS → T039 lint → T040 smoke-check)
+1. T001 â†’ types (blocks everything)
+2. T002â€“T007 â†’ API layer (T003â€“T006 in the same file, sequential)
+3. T008â€“T009 â†’ US1 movementType (quick win, P1)
+4. T010â€“T013 â†’ US5 audit diary
+5. T014â€“T015 â†’ US6 notes
+6. T016â€“T020 â†’ US7 batch ops
+7. T021â€“T023 â†’ Polish
+
+### Single-Developer Sequence
+
+T001 â†’ T002 â†’ T003 â†’ T004 â†’ T005 â†’ T006 â†’ T007 â†’
+T008 â†’ T009 â†’
+T010 â†’ T011 â†’ T012 â†’ T013 â†’
+T014 â†’ T015 â†’
+T016 â†’ T017 â†’ T018 â†’ T019 â†’ T020 â†’
+T021 â†’ T022 â†’ T023
 
 ---
 
 ## Notes
 
-- `[x]` tasks were completed in the prior iteration and remain valid for v2
-- `[ ]` tasks are either new or require updating for the schema endpoint change
-- `[P]` tasks = different files or independent tests, no blocking dependencies
-- `[Story]` label maps each task to its user story for traceability
-- The key v2 invariant: **schema is fetched from `GET /api/schemas/cadastral-movement`
-  exactly once per screen mount; never from batch detail; never re-fetched on batch selection**
-- Commit after each task or logical group
-- Principle V tests (T016–T018a, T024–T025b) cover the two main schema-driven behaviors:
-  dynamic column/field labels and correct input type rendering
+- `[P]` within Phase 2 means different functions â€” T003â€“T006 all go in `src/api/occurrences.ts`, so one developer should do them sequentially
+- `[P]` in Phase 8 means T022 (grep/audit) and T023 (browser smoke-check) can run in parallel
+- `CadastralMoviment.tsx` must NOT be modified at any point
+- After T001, always run `npx tsc --noEmit` before moving to the next phase
+- Each checkpoint in quickstart.md maps directly to the acceptance criteria in spec.md
+- `detail.notes` may arrive as `undefined` from older API responses â€” use `detail.notes ?? []` defensively

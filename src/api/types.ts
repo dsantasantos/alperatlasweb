@@ -1,5 +1,7 @@
-// CONTRACT VERSION: 2.0 — mirrors API Atlas v1 endpoints
+// CONTRACT VERSION: 3.0 — mirrors API Atlas v1 endpoints
 // Schema source changed: GET /api/schemas/{key} is now authoritative (not batch detail).
+// 3.0 additions: movementType on ApiOccurrenceListItem, notes/ApiOccurrenceNote on
+// ApiOccurrenceDetail, ApiBatchAuditEntry for GET /api/batches/{id}/audit.
 // DO NOT change without updating the backend contract simultaneously.
 
 // ===== Auth =====
@@ -53,7 +55,8 @@ export interface ApiValidationSummary {
 export interface ApiOccurrenceListItem {
   occurrenceId: string;
   sourceRecordId: string;
-  state: string;         // "Pending" | "Approved" | "Rejected" | "Disabled"
+  state: string;              // "Pending" | "Approved" | "Rejected" | "Disabled"
+  movementType?: string;      // "New" | "Edit" | "Remove" — first table column
   hasBlockingErrors: boolean;
   fields: ApiOccurrenceField[];
   validationSummary: ApiValidationSummary;
@@ -67,6 +70,13 @@ export interface ApiValidation {
   fieldKey: string;
 }
 
+export interface ApiOccurrenceNote {
+  id: string;
+  text: string;
+  authorId: string;
+  createdAt: string;  // ISO 8601
+}
+
 export interface ApiOccurrenceDetail {
   occurrenceId: string;
   batchId: string;
@@ -75,6 +85,16 @@ export interface ApiOccurrenceDetail {
   rejectionReason: string | null;
   fields: ApiOccurrenceField[];
   validations: ApiValidation[];
+  notes?: ApiOccurrenceNote[];  // embedded; may be absent in older responses
+}
+
+// ===== Batch Audit =====
+
+export interface ApiBatchAuditEntry {
+  changedAt: string;    // ISO 8601
+  changeType: string;   // e.g. "Created" | "Dispatched" | "Approved"
+  actorId: string;
+  description: string;
 }
 
 // ===== Batches =====

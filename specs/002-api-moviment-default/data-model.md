@@ -1,6 +1,6 @@
 # Data Model: CadastralMovimentDefaut — API Types
 
-**Branch**: `002-api-moviment-default` | **Date**: 2026-06-27 | **Last Updated**: 2026-06-27
+**Branch**: `002-api-moviment-default` | **Date**: 2026-06-27 | **Last Updated**: 2026-06-28
 
 All types live in `src/api/types.ts` and mirror the API Atlas v1 contract.
 
@@ -39,16 +39,32 @@ interface ApiSchema {
 | `"datetime"` | `<input type="datetime-local">` |
 | Any other | `<input type="text">` |
 
-**Fixed columns** (not in schema, always rendered last):
+**Fixed columns** (not in schema, always rendered at fixed positions):
 
-| Column | Source |
-|--------|--------|
-| Conferência | `hasBlockingErrors` / conference validation state |
-| Status | `state` string mapped via `stateMeta()` |
+| Column | Position | Source |
+|--------|----------|--------|
+| movementType | First | `ApiOccurrenceListItem.movementType` ("New" \| "Edit" \| "Remove") |
+| Conferência | Penultimate | `hasBlockingErrors` / conference validation state |
+| Status | Last | `state` string mapped via `stateMeta()` |
 
 ---
 
-## 2. Batch Types
+## 2. Batch Types & Audit
+
+### Batch audit entry (GET /api/batches/{id}/audit)
+
+```ts
+// One entry from GET /api/batches/{id}/audit.
+// Rendered in the collapsible diary panel at the top of the screen.
+interface ApiBatchAuditEntry {
+  changedAt: string;    // ISO 8601
+  changeType: string;   // e.g. "Created" | "Dispatched" | "Approved" | etc.
+  actorId: string;
+  description: string;
+}
+```
+
+### Batch list and detail
 
 ```ts
 // Item in GET /api/batches list response.
@@ -122,12 +138,22 @@ interface ApiOccurrenceListItem {
   occurrenceId: string;
   sourceRecordId: string;
   state: string;               // "Pending" | "Approved" | "Rejected" | "Disabled"
+  movementType: string;        // "New" | "Edit" | "Remove" — rendered as first column
   hasBlockingErrors: boolean;  // Pre-computed: any Capture+Error validation
   fields: ApiOccurrenceField[];
   validationSummary: {
     errorCount: number;
     warningCount: number;
   };
+}
+
+// A note embedded in the occurrence detail.
+// Submitted via POST /api/occurrences/{id}/notes; no separate listing endpoint.
+interface ApiOccurrenceNote {
+  id: string;
+  text: string;
+  authorId: string;
+  createdAt: string;  // ISO 8601
 }
 
 // Full occurrence from GET /api/occurrences/{id}.
@@ -139,6 +165,7 @@ interface ApiOccurrenceDetail {
   rejectionReason: string | null;
   fields: ApiOccurrenceField[];
   validations: ApiValidation[];
+  notes: ApiOccurrenceNote[];  // Embedded; may be empty array
 }
 
 // Individual validation from the detail response.
@@ -178,6 +205,7 @@ Guards:
 | `isRequired` | Not used for UI read-only gating (all fields editable); available for future validation hints |
 
 **Column render order**:
-1. Dynamic columns from `ApiSchema.fields`, sorted ascending by `displayOrder`
-2. "Conferência" column (fixed, penultimate)
-3. "Status" column (fixed, last)
+1. `movementType` column (fixed, first) — value from `ApiOccurrenceListItem.movementType`
+2. Dynamic columns from `ApiSchema.fields`, sorted ascending by `displayOrder`
+3. "Conferência" column (fixed, penultimate)
+4. "Status" column (fixed, last)

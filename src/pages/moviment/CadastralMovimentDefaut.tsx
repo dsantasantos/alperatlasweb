@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { I } from '../../components/shared/Icons';
 import { Tog, Toast, Modal } from '../../components/shared/UI';
 import { batchesApi } from '../../api/batches';
@@ -11,8 +11,10 @@ import type {
   ApiSchemaField,
   ApiBatchListItem,
   ApiBatchSummary,
+  ApiBatchAuditEntry,
   ApiOccurrenceListItem,
   ApiOccurrenceDetail,
+  ApiOccurrenceNote,
   ApiValidation,
 } from '../../api/types';
 
@@ -31,6 +33,59 @@ function SummaryBar({ summary }: SummaryBarProps) {
       {summary.warning > 0 && <div className="prog-warn"><I n="alert" s={13} />{summary.warning} com aviso</div>}
     </div>
   );
+}
+
+// ===== Audit Diary Panel =====
+
+interface AuditDiaryPanelProps {
+  entries: ApiBatchAuditEntry[];
+  loading: boolean;
+  error: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
+}
+function AuditDiaryPanel({ entries, loading, error, collapsed, onToggle }: AuditDiaryPanelProps) {
+  return (
+    <div className="audit-diary">
+      <button className="audit-diary-toggle" onClick={onToggle}>
+        <I n="list" s={13} />
+        <span className="sec-lbl">Diário do lote</span>
+        <I n={collapsed ? 'chevR' : 'chevD' as never} s={13} cls="audit-chevron" />
+      </button>
+      {!collapsed && (
+        <div className="audit-diary-body">
+          {loading && <div className="muted audit-row">Carregando…</div>}
+          {!loading && error && <div className="muted audit-row">Erro ao carregar diário.</div>}
+          {!loading && !error && entries.length === 0 && (
+            <div className="muted audit-row">Sem registros.</div>
+          )}
+          {!loading && !error && entries.map((e, i) => (
+            <div key={i} className="audit-row">
+              <span className="audit-at">{new Date(e.changedAt).toLocaleString('pt-BR')}</span>
+              <span className="audit-type">{e.changeType}</span>
+              <span className="audit-actor muted">{e.actorId}</span>
+              <span className="audit-desc">{e.description}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== Select-all checkbox (supports indeterminate state) =====
+
+interface SelectAllCheckboxProps {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: () => void;
+}
+function SelectAllCheckbox({ checked, indeterminate, onChange }: SelectAllCheckboxProps) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+  return <input type="checkbox" ref={ref} checked={checked} onChange={onChange} />;
 }
 
 // ===== Row (fully dynamic — schema-driven columns) =====
@@ -58,6 +113,8 @@ function Row({ r, schema, checked, onCheck, onOpen }: RowProps) {
       <td className="w-chk" onClick={e => e.stopPropagation()}>
         <input type="checkbox" checked={checked} onChange={onCheck} />
       </td>
+      {/* Fixed first column: movementType */}
+      <td>{r.movementType ?? ''}</td>
       {orderedFields.map(sf => (
         <td key={sf.key}>{getField(r.fields, sf.key)}</td>
       ))}
@@ -100,6 +157,71 @@ function ValidationGroup({ title, hint, items }: ValidationGroupProps) {
             );
           })
       }
+    </div>
+  );
+}
+
+// ===== Notes Section =====
+
+interface NotesSectionProps {
+  occurrenceId: string;
+  notes: ApiOccurrenceNote[];
+  onNoteAdded: (updated: ApiOccurrenceDetail) => void;
+  flash: (k: 'ok' | 'warn' | 'info', m: string) => void;
+}
+function NotesSection({ occurrenceId, notes, onNoteAdded, flash }: NotesSectionProps) {
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      await occurrencesApi.postNote(occurrenceId, trimmed);
+      const updated = await occurrencesApi.detail(occurrenceId);
+      onNoteAdded(updated);
+      setText('');
+    } catch {
+      flash('warn', 'Erro ao salvar anotação.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="notes-section">
+      <div className="dim-head">
+        <span className="sec-lbl"><I n="list" s={13} /> Histórico · auditoria e diário</span>
+      </div>
+      {notes.length === 0
+        ? <div className="muted" style={{ fontSize: 13, padding: '8px 0' }}>Sem anotações.</div>
+        : <div className="notes-list">
+            {notes.map(n => (
+              <div key={n.id} className="note-item">
+                <div className="note-meta muted">
+                  {new Date(n.createdAt).toLocaleString('pt-BR')} · {n.authorId}
+                </div>
+                <div className="note-text">{n.text}</div>
+              </div>
+            ))}
+          </div>
+      }
+      <textarea
+        className="note-input"
+        rows={2}
+        placeholder="Adicionar anotação…"
+        value={text}
+        onChange={e => setText(e.target.value)}
+        disabled={saving}
+      />
+      <button
+        className={'btn btn-ghost save-btn' + (!text.trim() || saving ? ' disabled' : '')}
+        disabled={!text.trim() || saving}
+        onClick={submit}
+      >
+        <I n="check" s={14} /> {saving ? 'Salvando…' : 'Adicionar anotação'}
+      </button>
     </div>
   );
 }
@@ -256,6 +378,14 @@ function Drawer({ detail, schema, onClose, onUpdate, flash }: DrawerProps) {
                 </div>
               </div>
             )}
+
+            <hr className="notes-divider" />
+            <NotesSection
+              occurrenceId={detail.occurrenceId}
+              notes={detail.notes ?? []}
+              onNoteAdded={onUpdate}
+              flash={flash}
+            />
           </div>
 
           <div className="dr-foot">
@@ -363,8 +493,8 @@ function BulkRejectModal({ count, onConfirm, onClose }: BulkRejectModalProps) {
 }
 
 // ===== Named exports for testing =====
-export { Row, ValidationGroup, Drawer, RejectModal, BulkRejectModal };
-export type { RowProps, ValidationGroupProps, DrawerProps, RejectModalProps, BulkRejectModalProps };
+export { AuditDiaryPanel, SelectAllCheckbox, Row, ValidationGroup, NotesSection, Drawer, RejectModal, BulkRejectModal };
+export type { AuditDiaryPanelProps, SelectAllCheckboxProps, RowProps, ValidationGroupProps, NotesSectionProps, DrawerProps, RejectModalProps, BulkRejectModalProps };
 
 // ===== Page =====
 
@@ -400,6 +530,10 @@ export default function CadastralMovimentDefaut() {
   const [filters,       setFilters]       = useState({ q: '', pend: true, ocultar: true });
   const [toast,         setToast]         = useState<{ k: 'ok' | 'warn' | 'info'; m: string } | null>(null);
   const [modal,         setModal]         = useState<ModalKind>(null);
+  const [auditEntries,  setAuditEntries]  = useState<ApiBatchAuditEntry[]>([]);
+  const [auditLoading,  setAuditLoading]  = useState(false);
+  const [auditError,    setAuditError]    = useState(false);
+  const [diaryCollapsed, setDiaryCollapsed] = useState(false);
 
   const flash = useCallback((k: 'ok' | 'warn' | 'info', m: string) => {
     setToast({ k, m });
@@ -425,17 +559,20 @@ export default function CadastralMovimentDefaut() {
       });
   }, []);
 
-  // Load batch detail + summary when selection changes (schema NOT re-fetched)
+  // Load batch detail + summary + audit when selection changes (schema NOT re-fetched)
   useEffect(() => {
     if (!selBatchId) return;
     setLoadingBatch(true);
     setChecked(new Set());
     setSelOccurrence(null);
+    setAuditLoading(true);
+    setAuditError(false);
     Promise.all([
       batchesApi.detail(selBatchId, { pageSize: 200 }),
       batchesApi.summary(selBatchId),
+      batchesApi.audit(selBatchId),
     ])
-      .then(([detail, sum]) => {
+      .then(([detail, sum, audit]) => {
         setBatchMeta({
           batchId:          detail.batchId,
           operationTypeKey: detail.operationTypeKey,
@@ -446,8 +583,14 @@ export default function CadastralMovimentDefaut() {
         });
         setBatchOccurrences(detail.occurrences);
         setSummary(sum);
+        setAuditEntries(audit);
+        setAuditLoading(false);
       })
-      .catch(() => flash('warn', 'Erro ao carregar lote.'))
+      .catch(() => {
+        flash('warn', 'Erro ao carregar lote.');
+        setAuditError(true);
+        setAuditLoading(false);
+      })
       .finally(() => setLoadingBatch(false));
   }, [selBatchId, flash]);
 
@@ -512,46 +655,48 @@ export default function CadastralMovimentDefaut() {
     return { rs: rs.slice().sort((a, b) => rank(a) - rank(b)), oc };
   }, [batchOccurrences, filters]);
 
-  // Bulk actions
+  // Batch actions — API is the validity authority (D9: no pre-filtering by blocking errors)
+  const refreshBatch = useCallback(async () => {
+    if (!selBatchId) return;
+    const [detail, sum] = await Promise.all([
+      batchesApi.detail(selBatchId, { pageSize: 200 }),
+      batchesApi.summary(selBatchId),
+    ]);
+    setBatchOccurrences(detail.occurrences);
+    setSummary(sum);
+  }, [selBatchId]);
+
   const bulkApprove = async (ids: string[]) => {
-    let ok = 0, skip = 0;
-    for (const id of ids) {
-      const item = batchOccurrences?.items.find(i => i.occurrenceId === id);
-      if (!item || item.hasBlockingErrors) { skip++; continue; }
-      try { await occurrencesApi.approve(id); ok++; } catch { skip++; }
+    try {
+      await occurrencesApi.batchApprove(ids);
+      flash('ok', `${ids.length} movimentação(ões) aprovada(s).`);
+    } catch {
+      flash('warn', 'Erro na operação em lote.');
     }
     setChecked(new Set());
-    if (selBatchId) {
-      const [detail, sum] = await Promise.all([
-        batchesApi.detail(selBatchId, { pageSize: 200 }),
-        batchesApi.summary(selBatchId),
-      ]);
-      setBatchOccurrences(detail.occurrences);
-      setSummary(sum);
-    }
-    flash(
-      ok && skip ? 'warn' : ok ? 'ok' : 'warn',
-      ok && skip ? `${ok} aprovada(s). ${skip} com erro bloqueante ignorada(s).`
-      : ok ? `${ok} movimentação(ões) aprovada(s).`
-      : 'Nenhuma aprovada — há erros bloqueantes.',
-    );
+    await refreshBatch();
   };
 
   const bulkReject = async (ids: string[], reason: string) => {
-    let ok = 0;
-    for (const id of ids) {
-      try { await occurrencesApi.reject(id, reason); ok++; } catch { /* skip */ }
+    try {
+      await occurrencesApi.batchReject(ids, reason);
+      flash('ok', `${ids.length} movimentação(ões) rejeitada(s).`);
+    } catch {
+      flash('warn', 'Erro na operação em lote.');
     }
     setChecked(new Set()); setModal(null);
-    if (selBatchId) {
-      const [detail, sum] = await Promise.all([
-        batchesApi.detail(selBatchId, { pageSize: 200 }),
-        batchesApi.summary(selBatchId),
-      ]);
-      setBatchOccurrences(detail.occurrences);
-      setSummary(sum);
+    await refreshBatch();
+  };
+
+  const bulkDisable = async (ids: string[]) => {
+    try {
+      await occurrencesApi.batchDisable(ids);
+      flash('ok', `${ids.length} movimentação(ões) desabilitada(s).`);
+    } catch {
+      flash('warn', 'Erro na operação em lote.');
     }
-    flash('ok', `${ok} movimentação(ões) rejeitada(s).`);
+    setChecked(new Set());
+    await refreshBatch();
   };
 
   const doExport = async () => {
@@ -656,6 +801,14 @@ export default function CadastralMovimentDefaut() {
               {summary && <SummaryBar summary={summary} />}
             </div>
 
+            <AuditDiaryPanel
+              entries={auditEntries}
+              loading={auditLoading}
+              error={auditError}
+              collapsed={diaryCollapsed}
+              onToggle={() => setDiaryCollapsed(c => !c)}
+            />
+
             <div className="filterbar">
               <span className="inp-wrap">
                 <I n="search" s={16} cls="inp-ic" />
@@ -673,8 +826,9 @@ export default function CadastralMovimentDefaut() {
             {checked.size > 0 && (
               <div className="batchbar">
                 <span className="bb-count">{checked.size} selecionada(s)</span>
-                <button className="bb-app" onClick={() => bulkApprove(Array.from(checked))}><I n="checkCircle" s={14} /> Aprovar</button>
-                <button className="bb-rej" onClick={() => setModal('bulk-reject')}><I n="xCircle" s={14} /> Rejeitar</button>
+                <button className="bb-app" onClick={() => bulkApprove(Array.from(checked))}><I n="checkCircle" s={14} /> Aprovar selecionados</button>
+                <button className="bb-rej" onClick={() => setModal('bulk-reject')}><I n="xCircle" s={14} /> Rejeitar selecionados</button>
+                <button className="bb-dis" onClick={() => bulkDisable(Array.from(checked))}><I n="ban" s={14} /> Desabilitar selecionados</button>
                 <button className="bb-clear" onClick={() => setChecked(new Set())}>Limpar</button>
               </div>
             )}
@@ -690,7 +844,21 @@ export default function CadastralMovimentDefaut() {
               <table className="grid">
                 <thead>
                   <tr>
-                    <th className="w-chk" />
+                    <th className="w-chk">
+                      <SelectAllCheckbox
+                        checked={view.rs.length > 0 && checked.size === view.rs.length}
+                        indeterminate={checked.size > 0 && checked.size < view.rs.length}
+                        onChange={() => {
+                          if (checked.size === view.rs.length) {
+                            setChecked(new Set());
+                          } else {
+                            setChecked(new Set(view.rs.map(r => r.occurrenceId)));
+                          }
+                        }}
+                      />
+                    </th>
+                    {/* Fixed first data column */}
+                    <th>Tipo</th>
                     {orderedSchema.map(sf => (
                       <th key={sf.key}>{sf.displayLabel}</th>
                     ))}
@@ -716,7 +884,7 @@ export default function CadastralMovimentDefaut() {
                   ))}
                   {view.rs.length === 0 && (
                     <tr>
-                      <td colSpan={orderedSchema.length + 3} className="empty">
+                      <td colSpan={orderedSchema.length + 4} className="empty">
                         <I n="list" s={24} />
                         <div>Nada para conferir com os filtros atuais.</div>
                       </td>
