@@ -35,6 +35,13 @@ function SummaryBar({ summary }: SummaryBarProps) {
   );
 }
 
+// ===== Movement type badge mapping (API values are English, display is PT) =====
+const MOVEMENT_TYPE_META: Record<string, { label: string; cls: string }> = {
+  New:    { label: 'Inclusão',  cls: 'tipo-inc' },
+  Edit:   { label: 'Alteração', cls: 'tipo-alt' },
+  Remove: { label: 'Exclusão',  cls: 'tipo-exc' },
+};
+
 // ===== Audit Diary Panel =====
 
 interface AuditDiaryPanelProps {
@@ -63,7 +70,7 @@ function AuditDiaryPanel({ entries, loading, error, collapsed, onToggle }: Audit
             <div key={i} className="audit-row">
               <span className="audit-at">{new Date(e.changedAt).toLocaleString('pt-BR')}</span>
               <span className="audit-type">{e.changeType}</span>
-              <span className="audit-actor muted">{e.actorId}</span>
+              <span className="audit-actor">{e.actorId}</span>
               <span className="audit-desc">{e.description}</span>
             </div>
           ))}
@@ -96,8 +103,9 @@ interface RowProps {
   checked: boolean;
   onCheck: () => void;
   onOpen: () => void;
+  gridCols?: string;
 }
-function Row({ r, schema, checked, onCheck, onOpen }: RowProps) {
+function Row({ r, schema, checked, onCheck, onOpen, gridCols }: RowProps) {
   const hasErr  = r.hasBlockingErrors;
   const hasWarn = !r.hasBlockingErrors && r.validationSummary.warningCount > 0;
   const rowCls  = hasErr ? 'row-err' : hasWarn ? 'row-warn' : '';
@@ -109,12 +117,16 @@ function Row({ r, schema, checked, onCheck, onOpen }: RowProps) {
   );
 
   return (
-    <tr onClick={onOpen} className={'row ' + rowCls + (dim ? ' dimmed' : '')}>
+    <tr onClick={onOpen} className={'row ' + rowCls + (dim ? ' dimmed' : '')} style={{ gridTemplateColumns: gridCols }}>
       <td className="w-chk" onClick={e => e.stopPropagation()}>
         <input type="checkbox" checked={checked} onChange={onCheck} />
       </td>
       {/* Fixed first column: movementType */}
-      <td>{r.movementType ?? ''}</td>
+      <td>
+        {r.movementType && MOVEMENT_TYPE_META[r.movementType]
+          ? <span className={'badge ' + MOVEMENT_TYPE_META[r.movementType].cls}>{MOVEMENT_TYPE_META[r.movementType].label}</span>
+          : <span className="muted">—</span>}
+      </td>
       {orderedFields.map(sf => (
         <td key={sf.key}>{getField(r.fields, sf.key)}</td>
       ))}
@@ -195,11 +207,11 @@ function NotesSection({ occurrenceId, notes, onNoteAdded, flash }: NotesSectionP
         <span className="sec-lbl"><I n="list" s={13} /> Histórico · auditoria e diário</span>
       </div>
       {notes.length === 0
-        ? <div className="muted" style={{ fontSize: 13, padding: '8px 0' }}>Sem anotações.</div>
+        ? <div className="note-meta" style={{ padding: '4px 0' }}>Sem anotações.</div>
         : <div className="notes-list">
             {notes.map(n => (
               <div key={n.id} className="note-item">
-                <div className="note-meta muted">
+                <div className="note-meta">
                   {new Date(n.createdAt).toLocaleString('pt-BR')} · {n.authorId}
                 </div>
                 <div className="note-text">{n.text}</div>
@@ -216,7 +228,7 @@ function NotesSection({ occurrenceId, notes, onNoteAdded, flash }: NotesSectionP
         disabled={saving}
       />
       <button
-        className={'btn btn-ghost save-btn' + (!text.trim() || saving ? ' disabled' : '')}
+        className={'btn btn-ghost save-btn' + (!text.trim() || saving ? ' btn-disabled' : '')}
         disabled={!text.trim() || saving}
         onClick={submit}
       >
@@ -496,9 +508,32 @@ function BulkRejectModal({ count, onConfirm, onClose }: BulkRejectModalProps) {
 export { AuditDiaryPanel, SelectAllCheckbox, Row, ValidationGroup, NotesSection, Drawer, RejectModal, BulkRejectModal };
 export type { AuditDiaryPanelProps, SelectAllCheckboxProps, RowProps, ValidationGroupProps, NotesSectionProps, DrawerProps, RejectModalProps, BulkRejectModalProps };
 
+
 // ===== Page =====
 
-type ModalKind = 'bulk-reject' | null;
+// ===== Diary Modal =====
+
+interface DiaryModalProps { entries: ApiBatchAuditEntry[]; loading: boolean; error: boolean; onClose: () => void }
+function DiaryModal({ entries, loading, error, onClose }: DiaryModalProps) {
+  return (
+    <Modal onClose={onClose} title="Diário do lote" icon="book">
+      <p className="modal-p">Histórico compartilhado do lote — qualquer analista acompanha o que aconteceu e por quê.</p>
+      {loading && <div className="muted audit-row">Carregando…</div>}
+      {!loading && error && <div className="muted audit-row">Erro ao carregar diário.</div>}
+      {!loading && !error && entries.length === 0 && <div className="muted audit-row">Sem registros.</div>}
+      {!loading && !error && entries.map((e, i) => (
+        <div key={i} className="audit-row">
+          <span className="audit-at">{new Date(e.changedAt).toLocaleString('pt-BR')}</span>
+          <span className="audit-type">{e.changeType}</span>
+          <span className="audit-actor">{e.actorId}</span>
+          <span className="audit-desc">{e.description}</span>
+        </div>
+      ))}
+    </Modal>
+  );
+}
+
+type ModalKind = 'bulk-reject' | 'diary' | null;
 
 export default function CadastralMovimentDefaut() {
   // Schema state — fetched once on mount, never re-fetched on batch selection
@@ -533,7 +568,6 @@ export default function CadastralMovimentDefaut() {
   const [auditEntries,  setAuditEntries]  = useState<ApiBatchAuditEntry[]>([]);
   const [auditLoading,  setAuditLoading]  = useState(false);
   const [auditError,    setAuditError]    = useState(false);
-  const [diaryCollapsed, setDiaryCollapsed] = useState(false);
 
   const flash = useCallback((k: 'ok' | 'warn' | 'info', m: string) => {
     setToast({ k, m });
@@ -658,12 +692,19 @@ export default function CadastralMovimentDefaut() {
   // Batch actions — API is the validity authority (D9: no pre-filtering by blocking errors)
   const refreshBatch = useCallback(async () => {
     if (!selBatchId) return;
-    const [detail, sum] = await Promise.all([
-      batchesApi.detail(selBatchId, { pageSize: 200 }),
-      batchesApi.summary(selBatchId),
-    ]);
-    setBatchOccurrences(detail.occurrences);
-    setSummary(sum);
+    setAuditLoading(true);
+    try {
+      const [detail, sum, audit] = await Promise.all([
+        batchesApi.detail(selBatchId, { pageSize: 200 }),
+        batchesApi.summary(selBatchId),
+        batchesApi.audit(selBatchId),
+      ]);
+      setBatchOccurrences(detail.occurrences);
+      setSummary(sum);
+      setAuditEntries(audit);
+    } finally {
+      setAuditLoading(false);
+    }
   }, [selBatchId]);
 
   const bulkApprove = async (ids: string[]) => {
@@ -748,6 +789,11 @@ export default function CadastralMovimentDefaut() {
 
   const orderedSchema = schema.slice().sort((a, b) => a.displayOrder - b.displayOrder);
 
+  // Dynamic grid columns: checkbox + tipo + N schema fields + conferência + status + chevron
+  const gridCols = orderedSchema.length > 0
+    ? `minmax(38px,.28fr) minmax(88px,.72fr) ${orderedSchema.map(() => 'minmax(100px,1fr)').join(' ')} minmax(110px,.9fr) minmax(100px,.8fr) minmax(32px,.25fr)`
+    : 'minmax(38px,.28fr) minmax(88px,.72fr) minmax(120px,1fr) minmax(110px,.9fr) minmax(100px,.8fr) minmax(32px,.25fr)';
+
   return (
     <div className="app app--slim">
       {/* ===== Batch rail ===== */}
@@ -793,6 +839,9 @@ export default function CadastralMovimentDefaut() {
                   </div>
                 </div>
                 <div className="m-actions">
+                  <button className="btn btn-ghost" onClick={() => setModal('diary')}>
+                    <I n="book" s={16} /> Diário do lote
+                  </button>
                   <button className="btn btn-primary" onClick={doExport}>
                     <I n="download" s={16} /> Exportar XLSX
                   </button>
@@ -800,14 +849,6 @@ export default function CadastralMovimentDefaut() {
               </div>
               {summary && <SummaryBar summary={summary} />}
             </div>
-
-            <AuditDiaryPanel
-              entries={auditEntries}
-              loading={auditLoading}
-              error={auditError}
-              collapsed={diaryCollapsed}
-              onToggle={() => setDiaryCollapsed(c => !c)}
-            />
 
             <div className="filterbar">
               <span className="inp-wrap">
@@ -843,7 +884,7 @@ export default function CadastralMovimentDefaut() {
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
-                  <tr>
+                  <tr style={{ gridTemplateColumns: gridCols }}>
                     <th className="w-chk">
                       <SelectAllCheckbox
                         checked={view.rs.length > 0 && checked.size === view.rs.length}
@@ -880,10 +921,11 @@ export default function CadastralMovimentDefaut() {
                         return n;
                       })}
                       onOpen={() => openOccurrence(r.occurrenceId)}
+                      gridCols={gridCols}
                     />
                   ))}
                   {view.rs.length === 0 && (
-                    <tr>
+                    <tr style={{ gridTemplateColumns: gridCols }}>
                       <td colSpan={orderedSchema.length + 4} className="empty">
                         <I n="list" s={24} />
                         <div>Nada para conferir com os filtros atuais.</div>
@@ -927,6 +969,15 @@ export default function CadastralMovimentDefaut() {
           onClose={() => setSelOccurrence(null)}
           onUpdate={handleOccurrenceUpdate}
           flash={flash}
+        />
+      )}
+
+      {modal === 'diary' && (
+        <DiaryModal
+          entries={auditEntries}
+          loading={auditLoading}
+          error={auditError}
+          onClose={() => setModal(null)}
         />
       )}
 

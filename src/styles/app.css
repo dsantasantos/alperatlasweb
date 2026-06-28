@@ -165,7 +165,8 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .grid th,.grid td{min-width:0}
 .grid thead th{position:sticky;top:0;background:#f3f4f6;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--navy);font-weight:800;padding:12px 10px;border-bottom:1px solid var(--line);z-index:5}
 .grid thead th:first-child{padding-left:0;background:#f3f4f6}
-.grid thead th.w-chk{display:flex;align-items:center;justify-content:center}
+.grid thead th.w-chk{display:flex;align-items:center;justify-content:center;height:42px;box-sizing:border-box}
+.grid thead th.w-chk input[type="checkbox"]{width:16px;height:16px;display:block;margin:0;flex-shrink:0}
 .grid thead th:last-child{padding-right:8px}
 .w-chk{width:auto}
 .row{position:relative;border-bottom:1px solid var(--line2);border-left:0;cursor:pointer;background:#fff}
@@ -324,6 +325,29 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .art-ic{color:var(--green)}
 .art-meta{margin-left:auto;font-size:11px;color:var(--soft)}
 .muted{color:var(--soft);font-size:14px}
+
+/* ===== audit diary panel ===== */
+.audit-diary{background:#fff;border-bottom:1px solid var(--line);padding:10px 24px 0}
+.audit-diary-toggle{display:flex;align-items:center;gap:7px;width:100%;padding:8px 0 10px;font-size:13px;color:var(--navy);font-weight:600;background:none;border:none;cursor:pointer;text-align:left}
+.audit-diary-toggle:hover{color:var(--navy-d)}
+.audit-chevron{margin-left:auto;color:var(--soft)}
+.audit-diary-body{padding:4px 0 12px;display:flex;flex-direction:column}
+.audit-row{display:flex;align-items:baseline;gap:12px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:12px;flex-wrap:wrap}
+.audit-row:last-child{border-bottom:0}
+.audit-at{color:var(--soft);white-space:nowrap;flex-shrink:0}
+.audit-type{font-weight:700;color:var(--navy);white-space:nowrap;flex-shrink:0}
+.audit-actor{color:var(--mute);white-space:nowrap;flex-shrink:0}
+.audit-desc{color:var(--slate);flex:1}
+
+/* ===== notes section (drawer) ===== */
+.notes-section{display:flex;flex-direction:column;gap:10px}
+.notes-list{display:flex;flex-direction:column;gap:0}
+.note-item{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--line2)}
+.note-item:last-child{border-bottom:0}
+.note-meta{font-size:11px;color:var(--soft)}
+.note-text{font-size:14px;color:var(--slate);margin-top:2px}
+.note-input{border:1px solid var(--line);border-radius:9px;padding:8px 12px;resize:none;width:100%;font-size:14px;color:var(--slate);background:#fff}
+.note-input:focus{outline:none;border-color:var(--navy-200);box-shadow:0 0 0 3px var(--navy-50)}
 
 /* ===== toast ===== */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:8px;color:#fff;padding:11px 18px;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,.25);font-size:14px}
