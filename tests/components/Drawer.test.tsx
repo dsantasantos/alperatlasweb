@@ -106,6 +106,37 @@ describe('Drawer — schema-driven field labels', () => {
   });
 });
 
+describe('Drawer — shows all schema fields regardless of table column cap', () => {
+  it('renders all 8 field labels when schema has 8 fields (no cap in modal)', () => {
+    const schema8: ApiSchemaField[] = [1, 2, 3, 4, 5, 6, 7, 8].map(n =>
+      makeSchemaField(`f${n}`, `Campo ${n}`, n)
+    );
+    const detail8: ApiOccurrenceDetail = {
+      occurrenceId: 'occ-8',
+      batchId: 'batch-1',
+      sourceRecordId: 'src-1',
+      state: 'Pending',
+      rejectionReason: null,
+      fields: [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
+        key: `f${n}`,
+        value: `valor${n}`,
+        originalValue: null,
+        lastEditedBy: null,
+        lastEditedAt: null,
+        provenance: { state: 'Automatic', description: '' },
+      })),
+      validations: [],
+      notes: [],
+    };
+    render(
+      <Drawer detail={detail8} schema={schema8} onClose={() => {}} onUpdate={() => {}} flash={() => {}} />
+    );
+    for (let n = 1; n <= 8; n++) {
+      expect(screen.getByText(`Campo ${n}`)).toBeInTheDocument();
+    }
+  });
+});
+
 describe('Drawer — input type mapping (resolveInputType)', () => {
   it('renders a date picker for fields with dataType "date"', () => {
     render(

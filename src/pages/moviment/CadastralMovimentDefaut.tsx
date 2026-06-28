@@ -789,10 +789,12 @@ export default function CadastralMovimentDefaut() {
   }
 
   const orderedSchema = schema.slice().sort((a, b) => a.displayOrder - b.displayOrder);
+  const TABLE_COLUMN_LIMIT = 5;
+  const tableSchema = orderedSchema.slice(0, TABLE_COLUMN_LIMIT);
 
-  // Dynamic grid columns: checkbox + tipo + N schema fields + conferência + status + chevron
-  const gridCols = orderedSchema.length > 0
-    ? `minmax(38px,.28fr) minmax(88px,.72fr) ${orderedSchema.map(() => 'minmax(100px,1fr)').join(' ')} minmax(110px,.9fr) minmax(100px,.8fr) minmax(32px,.25fr)`
+  // Dynamic grid columns: checkbox + tipo + N schema fields (capped) + conferência + status + chevron
+  const gridCols = tableSchema.length > 0
+    ? `minmax(38px,.28fr) minmax(88px,.72fr) ${tableSchema.map(() => 'minmax(100px,1fr)').join(' ')} minmax(110px,.9fr) minmax(100px,.8fr) minmax(32px,.25fr)`
     : 'minmax(38px,.28fr) minmax(88px,.72fr) minmax(120px,1fr) minmax(110px,.9fr) minmax(100px,.8fr) minmax(32px,.25fr)';
 
   return (
@@ -901,7 +903,7 @@ export default function CadastralMovimentDefaut() {
                     </th>
                     {/* Fixed first data column */}
                     <th>Tipo</th>
-                    {orderedSchema.map(sf => (
+                    {tableSchema.map(sf => (
                       <th key={sf.key}>{sf.displayLabel}</th>
                     ))}
                     <th>Conferência</th>
@@ -914,7 +916,7 @@ export default function CadastralMovimentDefaut() {
                     <Row
                       key={r.occurrenceId}
                       r={r}
-                      schema={schema}
+                      schema={tableSchema}
                       checked={checked.has(r.occurrenceId)}
                       onCheck={() => setChecked(s => {
                         const n = new Set(s);
@@ -927,7 +929,7 @@ export default function CadastralMovimentDefaut() {
                   ))}
                   {view.rs.length === 0 && (
                     <tr style={{ gridTemplateColumns: gridCols }}>
-                      <td colSpan={orderedSchema.length + 4} className="empty">
+                      <td colSpan={tableSchema.length + 4} className="empty">
                         <I n="list" s={24} />
                         <div>Nada para conferir com os filtros atuais.</div>
                       </td>

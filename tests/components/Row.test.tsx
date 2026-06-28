@@ -93,8 +93,85 @@ describe('Row', () => {
         <Row r={mockOccurrence} schema={smallSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
       </tbody></table>
     );
-    // checkbox + 2 dynamic + Conferência + Status + chevron = 6 cells
+    // checkbox + Tipo + 2 dynamic + Conferência + Status + chevron = 7 cells
     const cells = container.querySelectorAll('td');
-    expect(cells).toHaveLength(6);
+    expect(cells).toHaveLength(7);
+  });
+});
+
+describe('Row — column cap (table shows ≤ 5 dynamic columns)', () => {
+  const make8FieldSchema = (): ApiSchemaField[] => [
+    makeSchemaField('f1', 'Campo 1', 1),
+    makeSchemaField('f2', 'Campo 2', 2),
+    makeSchemaField('f3', 'Campo 3', 3),
+    makeSchemaField('f4', 'Campo 4', 4),
+    makeSchemaField('f5', 'Campo 5', 5),
+    makeSchemaField('f6', 'Campo 6', 6),
+    makeSchemaField('f7', 'Campo 7', 7),
+    makeSchemaField('f8', 'Campo 8', 8),
+  ];
+
+  const makeOccurrenceWith8Fields = (): ApiOccurrenceListItem => ({
+    occurrenceId: 'occ-cap',
+    sourceRecordId: 'src-cap',
+    state: 'Pending',
+    hasBlockingErrors: false,
+    fields: [1, 2, 3, 4, 5, 6, 7, 8].map(n => makeField(`f${n}`, `valor${n}`)),
+    validationSummary: { errorCount: 0, warningCount: 0 },
+  });
+
+  it('renders exactly 5 dynamic cells when schema has 8 fields (5-column cap applied upstream)', () => {
+    // The page passes tableSchema = orderedSchema.slice(0, 5) to Row
+    const tableSchema = make8FieldSchema().slice(0, 5);
+    const { container } = render(
+      <table><tbody>
+        <Row r={makeOccurrenceWith8Fields()} schema={tableSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
+      </tbody></table>
+    );
+    // checkbox + Tipo + 5 dynamic + Conferência + Status + chevron = 10 cells
+    const cells = container.querySelectorAll('td');
+    expect(cells).toHaveLength(10);
+  });
+
+  it('renders all 3 dynamic cells when schema has 3 fields (under the cap)', () => {
+    const schema3: ApiSchemaField[] = [
+      makeSchemaField('f1', 'Campo 1', 1),
+      makeSchemaField('f2', 'Campo 2', 2),
+      makeSchemaField('f3', 'Campo 3', 3),
+    ];
+    const { container } = render(
+      <table><tbody>
+        <Row r={makeOccurrenceWith8Fields()} schema={schema3} checked={false} onCheck={() => {}} onOpen={() => {}} />
+      </tbody></table>
+    );
+    // checkbox + Tipo + 3 dynamic + Conferência + Status + chevron = 8 cells
+    const cells = container.querySelectorAll('td');
+    expect(cells).toHaveLength(8);
+  });
+
+  it('renders 0 dynamic cells when schema is empty', () => {
+    const { container } = render(
+      <table><tbody>
+        <Row r={makeOccurrenceWith8Fields()} schema={[]} checked={false} onCheck={() => {}} onOpen={() => {}} />
+      </tbody></table>
+    );
+    // checkbox + Tipo + 0 dynamic + Conferência + Status + chevron = 5 cells
+    const cells = container.querySelectorAll('td');
+    expect(cells).toHaveLength(5);
+  });
+
+  it('renders columns in ascending displayOrder (first 5 by order are visible)', () => {
+    // tableSchema is orderedSchema.slice(0,5): fields f1-f5 (displayOrder 1-5)
+    const tableSchema = make8FieldSchema().slice(0, 5);
+    render(
+      <table><tbody>
+        <Row r={makeOccurrenceWith8Fields()} schema={tableSchema} checked={false} onCheck={() => {}} onOpen={() => {}} />
+      </tbody></table>
+    );
+    // Fields 1-5 appear; fields 6-8 are not in tableSchema so not rendered
+    expect(screen.getByText('valor1')).toBeInTheDocument();
+    expect(screen.getByText('valor5')).toBeInTheDocument();
+    expect(screen.queryByText('valor6')).not.toBeInTheDocument();
+    expect(screen.queryByText('valor8')).not.toBeInTheDocument();
   });
 });
