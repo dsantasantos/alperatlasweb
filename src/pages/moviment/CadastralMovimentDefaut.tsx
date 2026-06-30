@@ -505,9 +505,86 @@ function BulkRejectModal({ count, onConfirm, onClose }: BulkRejectModalProps) {
   );
 }
 
+// ===== XLSX Upload Modal =====
+
+const XLSX_MAX_BYTES = 10 * 1024 * 1024;
+
+interface XlsxUploadModalProps { onSuccess: () => void; onClose: () => void }
+function XlsxUploadModal({ onSuccess, onClose }: XlsxUploadModalProps) {
+  const [file,             setFile]             = useState<File | null>(null);
+  const [operationTypeKey, setOperationTypeKey] = useState('');
+  const [movementType,     setMovementType]     = useState('');
+  const [sourceType,       setSourceType]       = useState('');
+  const [sourceId,         setSourceId]         = useState('');
+  const [sourceChannel,    setSourceChannel]    = useState('');
+  const [loading,          setLoading]          = useState(false);
+  const [formError,        setFormError]        = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    if (!file)                                          return setFormError('Selecione um arquivo XLSX.');
+    if (!file.name.toLowerCase().endsWith('.xlsx'))     return setFormError('O arquivo deve ter extensão .xlsx.');
+    if (file.size > XLSX_MAX_BYTES)                     return setFormError('O arquivo não pode ultrapassar 10 MB.');
+    if (!operationTypeKey.trim() || !movementType.trim() ||
+        !sourceType.trim()       || !sourceId.trim()    ||
+        !sourceChannel.trim())                          return setFormError('Preencha todos os campos obrigatórios.');
+
+    setFormError(null);
+    setLoading(true);
+    try {
+      await batchesApi.uploadXlsx({ file, operationTypeKey, movementType, sourceType, sourceId, sourceChannel });
+      onSuccess();
+    } catch (err) {
+      const msg = err instanceof ApiError ? (err.body || 'Erro no servidor.') : 'Erro inesperado.';
+      setFormError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} title="Importar planilha" icon="upload">
+      <div className="modal-field">
+        <label className="field-lbl">Arquivo XLSX *</label>
+        <input type="file" accept=".xlsx" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+      </div>
+      <div className="modal-field">
+        <label className="field-lbl">Tipo de operação *</label>
+        <input value={operationTypeKey} onChange={e => setOperationTypeKey(e.target.value)} placeholder="Ex.: cadastral-movement" />
+      </div>
+      <div className="modal-field">
+        <label className="field-lbl">Tipo de movimentação *</label>
+        <input value={movementType} onChange={e => setMovementType(e.target.value)} placeholder="Ex.: New" />
+      </div>
+      <div className="modal-field">
+        <label className="field-lbl">Tipo de fonte *</label>
+        <input value={sourceType} onChange={e => setSourceType(e.target.value)} placeholder="Ex.: System" />
+      </div>
+      <div className="modal-field">
+        <label className="field-lbl">ID da fonte *</label>
+        <input value={sourceId} onChange={e => setSourceId(e.target.value)} placeholder="Ex.: crm-001" />
+      </div>
+      <div className="modal-field">
+        <label className="field-lbl">Canal da fonte *</label>
+        <input value={sourceChannel} onChange={e => setSourceChannel(e.target.value)} placeholder="Ex.: API" />
+      </div>
+      {formError && <p className="form-error">{formError}</p>}
+      <div className="modal-foot">
+        <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancelar</button>
+        <button
+          className={'btn ' + (loading ? 'btn-disabled' : 'btn-primary')}
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? 'Enviando…' : 'Salvar'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ===== Named exports for testing =====
-export { AuditDiaryPanel, SelectAllCheckbox, Row, ValidationGroup, NotesSection, Drawer, RejectModal, BulkRejectModal };
-export type { AuditDiaryPanelProps, SelectAllCheckboxProps, RowProps, ValidationGroupProps, NotesSectionProps, DrawerProps, RejectModalProps, BulkRejectModalProps };
+export { AuditDiaryPanel, SelectAllCheckbox, Row, ValidationGroup, NotesSection, Drawer, RejectModal, BulkRejectModal, XlsxUploadModal };
+export type { AuditDiaryPanelProps, SelectAllCheckboxProps, RowProps, ValidationGroupProps, NotesSectionProps, DrawerProps, RejectModalProps, BulkRejectModalProps, XlsxUploadModalProps };
 
 
 // ===== Page =====
@@ -534,7 +611,7 @@ function DiaryModal({ entries, loading, error, onClose }: DiaryModalProps) {
   );
 }
 
-type ModalKind = 'bulk-reject' | 'diary' | null;
+type ModalKind = 'bulk-reject' | 'diary' | 'xlsx-upload' | null;
 
 export default function CadastralMovimentDefaut() {
   // Schema state — fetched once on mount, never re-fetched on batch selection
@@ -741,6 +818,18 @@ export default function CadastralMovimentDefaut() {
     await refreshBatch();
   };
 
+  const handleXlsxUploadSuccess = async () => {
+    setModal(null);
+    try {
+      const res = await batchesApi.list({ operationTypeKey: 'cadastral-movement', pageSize: 50 });
+      setBatches(res.items);
+      if (res.items.length > 0) setSelBatchId(res.items[0].batchId);
+    } catch {
+      // list stays stale; user can reload
+    }
+    flash('ok', 'Lote importado com sucesso');
+  };
+
   const doExport = async () => {
     if (!selBatchId) return;
     if (summary && summary.approved === 0) {
@@ -844,6 +933,9 @@ export default function CadastralMovimentDefaut() {
                 <div className="m-actions">
                   <button className="btn btn-ghost" onClick={() => setModal('diary')}>
                     <I n="book" s={16} /> Diário do lote
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setModal('xlsx-upload')}>
+                    <I n="upload" s={16} /> Importar planilha
                   </button>
                   <button className="btn btn-primary" onClick={doExport}>
                     <I n="download" s={16} /> Exportar XLSX
@@ -988,6 +1080,13 @@ export default function CadastralMovimentDefaut() {
         <BulkRejectModal
           count={checked.size}
           onConfirm={reason => bulkReject(Array.from(checked), reason)}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal === 'xlsx-upload' && (
+        <XlsxUploadModal
+          onSuccess={handleXlsxUploadSuccess}
           onClose={() => setModal(null)}
         />
       )}

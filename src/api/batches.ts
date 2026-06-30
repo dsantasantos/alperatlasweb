@@ -38,7 +38,7 @@ export const batchesApi = {
   summary: (batchId: string) =>
     httpClient.get<ApiBatchSummary>(`/api/batches/${batchId}/summary`),
 
-  export: (batchId: string, template = 'defaultxlsx') =>
+  export: (batchId: string, template = 'eb') =>
     httpClient.blob(`/api/batches/${batchId}/export${qs({ template })}`),
 
   dispatch: (batchId: string) =>
@@ -46,4 +46,22 @@ export const batchesApi = {
 
   audit: (batchId: string) =>
     httpClient.get<ApiBatchAuditEntry[]>(`/api/batches/${batchId}/audit`),
+
+  uploadXlsx: (params: {
+    file:             File;
+    operationTypeKey: string;
+    movementType:     string;
+    sourceType:       string;
+    sourceId:         string;
+    sourceChannel:    string;
+  }) => {
+    const fd = new FormData();
+    fd.append('file',             params.file);
+    fd.append('OperationTypeKey', params.operationTypeKey);
+    fd.append('MovementType',     params.movementType);
+    fd.append('SourceType',       params.sourceType);
+    fd.append('SourceId',         params.sourceId);
+    fd.append('SourceChannel',    params.sourceChannel);
+    return httpClient.postForm<void>('/api/batches/xlsx', fd);
+  },
 };

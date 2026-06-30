@@ -48,6 +48,25 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+async function requestForm<T>(method: string, path: string, form: FormData): Promise<T> {
+  if (isTokenExpired()) {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw new ApiError(401, 'token expired');
+  }
+  const res = await fetch(`${base()}${path}`, {
+    method,
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw new ApiError(res.status, text);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
 export async function requestBlob(path: string): Promise<Blob> {
   const res = await fetch(`${base()}${path}`, {
     method: 'GET',
@@ -61,8 +80,9 @@ export async function requestBlob(path: string): Promise<Blob> {
 }
 
 export const httpClient = {
-  get:   <T>(path: string)                  => request<T>('GET',   path),
-  post:  <T>(path: string, body?: unknown)  => request<T>('POST',  path, body),
-  patch: <T>(path: string, body: unknown)   => request<T>('PATCH', path, body),
-  blob:  (path: string)                     => requestBlob(path),
+  get:      <T>(path: string)                          => request<T>('GET',   path),
+  post:     <T>(path: string, body?: unknown)          => request<T>('POST',  path, body),
+  patch:    <T>(path: string, body: unknown)           => request<T>('PATCH', path, body),
+  blob:     (path: string)                             => requestBlob(path),
+  postForm: <T>(path: string, form: FormData)          => requestForm<T>('POST', path, form),
 };
